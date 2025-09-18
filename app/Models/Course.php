@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+
+class Course extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'instructor_id',
+        'title',
+        'slug',
+        'description',
+        'price',
+        'image',
+        'is_published',
+        'published_at',
+        'what_you_will_learn',
+        'requirements',
+        'level',
+        'language',
+        'duration_in_minutes',
+    ];
+
+    protected $casts = [
+        'is_published' => 'boolean',
+        'published_at' => 'datetime',
+        'price' => 'decimal:2',
+    ];
+
+    public function instructor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'instructor_id');
+    }
+
+    public function videos(): HasMany
+    {
+        return $this->hasMany(Video::class)->orderBy('sort_order');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function students(): HasManyThrough
+    {
+        return $this->hasManyThrough(User::class, Enrollment::class, 'course_id', 'id', 'id', 'user_id')
+                    ->where('enrollments.status', 'completed');
+    }
+
+    public function progress(): HasMany
+    {
+        return $this->hasMany(CourseProgress::class);
+    }
+
+    public function getTotalVideosCount(): int
+    {
+        return $this->videos()->count();
+    }
+
+    public function getEnrollmentCount(): int
+    {
+        return $this->enrollments()->where('status', 'completed')->count();
+    }
+
+    public function getCompletionRate(): float
+    {
+        $totalEnrollments = $this->getEnrollmentCount();
+        if ($totalEnrollments === 0) {
+            return 0;
+        }
+
+        $completedEnrollments = $this->enrollments()
+            ->where('status', 'completed')
+            ->where('progress_percentage', '>=', 100)
+            ->count();
+
+        return round(($completedEnrollments / $totalEnrollments) * 100, 2);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($course) {
+            if (auth()->check() && !$course->instructor_id) {
+                $course->instructor_id = auth()->id();
+            }
+        });
+    }
+}
