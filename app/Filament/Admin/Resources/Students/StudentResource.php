@@ -19,9 +19,9 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
 
     protected static ?string $navigationLabel = 'Students';
-    
+
     protected static ?string $modelLabel = 'Student';
-    
+
     protected static ?string $pluralModelLabel = 'Students';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;

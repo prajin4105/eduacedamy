@@ -14,7 +14,7 @@ class CourseVideoSeeder extends Seeder
     public function run(): void
     {
         // Find the course by slug
-        $course = Course::where('slug', 'complete-web-development-bootcamp')->first();
+        $course = Course::where('slug', 'advanced-laravel-techniques')->first();
 
         if (!$course) {
             $this->command->info('Course not found!');

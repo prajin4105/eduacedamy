@@ -1,47 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <router-link to="/" class="text-xl font-bold text-indigo-600">
-                EduAcademy
-              </router-link>
-            </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link
-                to="/"
-                class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500"
-                exact
-              >
-                Home
-              </router-link>
-              <router-link
-                to="/courses"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500 text-gray-900"
-              >
-                Courses
-              </router-link>
-            </div>
-          </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            <div v-if="user">
-              <span class="text-gray-700">Welcome, {{ user.name }}</span>
-              <button
-                @click="logout"
-                class="ml-4 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
 
     <!-- Dashboard Header -->
     <div class="bg-indigo-600 text-white py-8">
@@ -112,14 +71,14 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
-              <div class="ml-4">
+              <div class="ml-6">
                 <p class="text-sm font-medium text-gray-600">In Progress</p>
                 <p class="text-2xl font-bold text-gray-900">{{ statistics.in_progress_courses }}</p>
               </div>
             </div>
           </div>
 
-          <div class="bg-white rounded-lg shadow p-6">
+          <!-- <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
               <div class="p-3 rounded-full bg-purple-100 text-purple-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +90,7 @@
                 <p class="text-2xl font-bold text-gray-900">{{ formatTime(statistics.total_time_spent_seconds) }}</p>
               </div>
             </div>
-          </div>
+          </div> -->
         </div>
 
         <!-- Progress Overview -->
@@ -154,7 +113,7 @@
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Completed Courses</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="course in completedCourses" :key="course.enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <img :src="course.course.image || '/api/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
+              <img :src="course.course.image || '/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
               <div class="p-6">
                 <div class="flex items-center justify-between mb-2">
                   <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
@@ -166,7 +125,7 @@
                 </div>
 
                 <h3 class="text-xl font-semibold mb-2">{{ course.course.title }}</h3>
-                <p class="text-gray-600 mb-4">{{ course.course.description?.substring(0, 100) }}...</p>
+                <p class="text-gray-600 mb-4">{{ truncateText(course.course.description, 100) }}</p>
 
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center">
@@ -195,7 +154,7 @@
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Continue Learning</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="course in inProgressCourses" :key="course.enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <img :src="course.course.image || '/api/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
+              <img :src="course.course.image || '/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
               <div class="p-6">
                 <div class="flex items-center justify-between mb-2">
                   <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium">
@@ -207,7 +166,7 @@
                 </div>
 
                 <h3 class="text-xl font-semibold mb-2">{{ course.course.title }}</h3>
-                <p class="text-gray-600 mb-4">{{ course.course.description?.substring(0, 100) }}...</p>
+                <p class="text-gray-600 mb-4">{{ truncateText(course.course.description, 100) }}</p>
 
                 <!-- Progress Bar -->
                 <div class="mb-4">
@@ -247,7 +206,7 @@
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Ready to Start</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="course in notStartedCourses" :key="course.enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <img :src="course.course.image || '/api/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
+              <img :src="course.course.image || '/placeholder/300/200'" :alt="course.course.title" class="w-full h-48 object-cover" />
               <div class="p-6">
                 <div class="flex items-center justify-between mb-2">
                   <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-sm font-medium">
@@ -259,7 +218,7 @@
                 </div>
 
                 <h3 class="text-xl font-semibold mb-2">{{ course.course.title }}</h3>
-                <p class="text-gray-600 mb-4">{{ course.course.description?.substring(0, 100) }}...</p>
+                <p class="text-gray-600 mb-4">{{ truncateText(course.course.description, 100) }}</p>
 
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center">
@@ -332,10 +291,25 @@ const completedCourses = ref([]);
 const inProgressCourses = ref([]);
 const notStartedCourses = ref([]);
 
+// UTILITY FUNCTIONS FOR HTML STRIPPING
+const stripHtml = (html) => {
+  if (!html) return '';
+  // Create a temporary div element to parse HTML
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
+const truncateText = (text, length = 100) => {
+  if (!text) return '';
+  const cleanText = stripHtml(text);
+  return cleanText.length > length ? cleanText.substring(0, length) + '...' : cleanText;
+};
+
 const fetchDashboardProgress = async () => {
   try {
     loading.value = true;
-    const response = await axios.get('/api/dashboard/progress');
+    const response = await axios.get('/dashboard/progress');
 
     if (response.data.success) {
       const data = response.data.data;
@@ -397,7 +371,7 @@ const formatTime = (seconds) => {
 
 const logout = async () => {
   try {
-    await axios.post('/api/logout');
+    await axios.post('/logout');
     localStorage.removeItem('auth_token');
     router.push('/login');
   } catch (error) {

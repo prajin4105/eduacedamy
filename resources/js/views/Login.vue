@@ -7,7 +7,7 @@
       <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
         Sign in to your account
       </h2>
-    
+
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -161,7 +161,7 @@ const login = async () => {
     errors.value = {};
     message.value = '';
 
-    const response = await axios.post('/api/login', {
+    const response = await axios.post('/login', {
       email: form.value.email,
       password: form.value.password,
       device_name: 'web'
@@ -174,11 +174,11 @@ const login = async () => {
     message.value = 'Login successful! Redirecting...';
     messageType.value = 'success';
 
-    const me = await axios.get('/api/me');
-    
+    const me = await axios.get('/me');
+
     // Store user data in localStorage
     localStorage.setItem('user', JSON.stringify(me.data));
-    
+
     // Update auth store with user data and token
     authStore.setAuth(me.data, token);
 

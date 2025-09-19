@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Course extends Model
@@ -49,6 +50,47 @@ class Course extends Model
         return $this->hasMany(Enrollment::class);
     }
 
+    /**
+     * Get all reviews for the course.
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get the average rating of the course.
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        return (float) $this->reviews()->avg('rating');
+    }
+
+    /**
+     * Get the total number of reviews for the course.
+     */
+    public function getReviewsCountAttribute(): int
+    {
+        return $this->reviews()->count();
+    }
+
+    /**
+     * Check if a user has reviewed the course.
+     */
+    public function hasUserReviewed(int $userId): bool
+    {
+        return $this->reviews()->where('user_id', $userId)->exists();
+    }
+
+
+    /**
+     * The categories that belong to the course.
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'course_category');
+    }
+
     public function students(): HasManyThrough
     {
         return $this->hasManyThrough(User::class, Enrollment::class, 'course_id', 'id', 'id', 'user_id')
@@ -90,7 +132,7 @@ class Course extends Model
         parent::boot();
 
         static::creating(function ($course) {
-            if (auth()->check() && !$course->instructor_id) {
+        if (auth()->check() && !$course->instructor_id) {
                 $course->instructor_id = auth()->id();
             }
         });

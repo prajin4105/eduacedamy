@@ -1,47 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Navigation -->
-     <nav class="bg-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <router-link to="/" class="text-xl font-bold text-indigo-600">
-                EduAcademy
-              </router-link>
-            </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link
-                to="/"
-                class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500"
-                exact
-              >
-                Home
-              </router-link>
-              <router-link
-                to="/courses"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500 text-gray-900"
-              >
-                Courses
-              </router-link>
-            </div>
-          </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            <div v-if="user">
-              <span class="text-gray-700">Welcome, {{ user.name }}</span>
-              <button
-                @click="logout"
-                class="ml-4 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+
 
 
     <!-- Dashboard Header -->
@@ -103,7 +63,7 @@
 
         <div v-else-if="enrolledCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div v-for="enrollment in enrolledCourses" :key="enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <img :src="enrollment.course.image || '/api/placeholder/300/200'" :alt="enrollment.course.title" class="w-full h-48 object-cover" />
+            <img :src="enrollment.course.image || '/placeholder/300/200'" :alt="enrollment.course.title" class="w-full h-48 object-cover" />
             <div class="p-6">
               <div class="flex items-center justify-between mb-2">
                 <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-sm font-medium">
@@ -165,7 +125,7 @@
 
         <div v-if="availableCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div v-for="course in availableCourses" :key="course.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <img :src="course.image || '/api/placeholder/300/200'" :alt="course.title" class="w-full h-40 object-cover" />
+            <img :src="course.image || '/placeholder/300/200'" :alt="course.title" class="w-full h-40 object-cover" />
             <div class="p-4">
               <h3 class="text-lg font-semibold mb-2">{{ course.title }}</h3>
               <p class="text-gray-600 text-sm mb-3">{{ course.excerpt }}</p>
@@ -231,8 +191,8 @@ const fetchDashboardData = async () => {
   try {
     loading.value = true;
     const [enrollmentsRes, coursesRes] = await Promise.all([
-      axios.get('/api/enrollments'),
-      axios.get('/api/courses')
+      axios.get('/enrollments'),
+      axios.get('/courses')
     ]);
     enrolledCourses.value = enrollmentsRes.data;
     availableCourses.value = coursesRes.data.slice(0, 8);
@@ -260,7 +220,7 @@ const buyCourse = async (course) => {
     await loadRazorpay();
 
     // Step 1: Check if user is already enrolled
-    const checkRes = await axios.post('/api/enrollments/check', { course_id: course.id });
+    const checkRes = await axios.post('/enrollments/check', { course_id: course.id });
     if (checkRes.data.already_enrolled) {
       message.value = 'You are already enrolled in this course.';
       messageType.value = 'error';
@@ -268,7 +228,7 @@ const buyCourse = async (course) => {
     }
 
     // Step 2: Create order
-    const { data } = await axios.post("/api/create-order", { amount: course.price, currency: "INR" });
+    const { data } = await axios.post("/create-order", { amount: course.price, currency: "INR" });
     if (!data.success) throw new Error(data.message || "Error creating order");
 
     // Step 3: Configure Razorpay
@@ -281,7 +241,7 @@ const buyCourse = async (course) => {
       order_id: data.orderId,
       handler: async (response) => {
         try {
-          const enrollRes = await axios.post("/api/enrollments", {
+          const enrollRes = await axios.post("/enrollments", {
             course_id: course.id,
             payment_id: response.razorpay_payment_id,
             order_id: response.razorpay_order_id,

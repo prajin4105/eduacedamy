@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Admin\Resources\Courses\Schemas;
+namespace App\Filament\Admin\Resources\CourseCategories\Schemas;
 
 use Filament\Schemas\Schema;
 
-class CourseForm
+class CourseCategoryForm
 {
     public static function configure(Schema $schema): Schema
     {

@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Course;
 use App\Models\Video;
 
-class CourseVideoSeeder extends Seeder
+class VideoSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,7 +14,7 @@ class CourseVideoSeeder extends Seeder
     public function run(): void
     {
         // Find the course by slug
-        $course = Course::where('slug', 'complete-web-development-bootcamp')->first();
+        $course = Course::where('slug', 'advanced-laravel-techniques')->first();
 
         if (!$course) {
             $this->command->info('Course not found!');
@@ -29,13 +29,13 @@ class CourseVideoSeeder extends Seeder
         ];
 
         // Loop to create 5 videos
-        for ($index = 0; $index < 5; $index++) {
+        for ($index = 0; $index < 10; $index++) {
             Video::create([
                 'course_id' => $course->id,
                 'title' => $videoInfo['title'] . ' - Part ' . ($index + 1),
                 'description' => $videoInfo['description'],
-                'video_url' => 'videos/sample-video-' . ($index + 1) . '.mp4',
-                'thumbnail_url' => 'video-thumbnails/thumbnail-' . ($index + 1) . '.jpg',
+                'video_url' => 'videos/01K5GK215DT4WEXD30JVVFPYV9.mp4',
+                'thumbnail_url' => 'video-thumbnails/01K5GK2161YENSHV8SJH87AH1Q.jpg',
                 'duration_seconds' => $videoInfo['duration_seconds'],
                 'sort_order' => $index,
                 'is_published' => true,

@@ -1,48 +1,6 @@
 <template>
-
-
   <div class="min-h-screen bg-gray-50">
-      <nav class="bg-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <router-link to="/" class="text-xl font-bold text-indigo-600">
-                EduAcademy
-              </router-link>
-            </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link
-                to="/"
-                class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500"
-                exact
-              >
-                Home
-              </router-link>
-              <router-link
-                to="/courses"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500 text-gray-900"
-              >
-                Courses
-              </router-link>
-            </div>
-          </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            <div v-if="user">
-              <span class="text-gray-700">Welcome, {{ user.name }}</span>
-              <button
-                @click="logout"
-                class="ml-4 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -81,32 +39,33 @@
       </div>
 
       <!-- Video Player Section -->
-   <div class="bg-white rounded-lg shadow-md mb-8 flex justify-center">
-  <div class="aspect-video w-full max-w-3xl bg-black rounded-t-lg">
-    <video
-      v-if="video.video_url"
-      ref="videoPlayer"
-      controls
-      class="w-full h-full rounded-t-lg"
-      :poster="video.thumbnail_url"
-      @loadedmetadata="onVideoLoaded"
-      @timeupdate="onTimeUpdate"
-    >
-      <source :src="video.video_url" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-    <div v-else class="w-full h-full flex items-center justify-center">
-      <div class="text-center text-white">
-        <svg class="mx-auto h-16 w-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-        </svg>
-        <p class="text-xl">Video not available</p>
-        <p class="text-sm opacity-75">Please contact the instructor</p>
+      <div class="bg-white rounded-lg shadow-md mb-8 flex justify-center">
+        <div class="aspect-video w-full max-w-3xl bg-black rounded-t-lg">
+          <video
+            v-if="video.video_url"
+            ref="videoPlayer"
+            controls
+            class="w-full h-full rounded-t-lg"
+            :poster="getValidThumbnail(video)"
+            @loadedmetadata="onVideoLoaded"
+            @timeupdate="onTimeUpdate"
+            @error="onVideoError"
+            @poster="onPosterError"
+          >
+            <source :src="video.video_url" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <div v-else class="w-full h-full flex items-center justify-center">
+            <div class="text-center text-white">
+              <svg class="mx-auto h-16 w-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <p class="text-xl">Video not available</p>
+              <p class="text-sm opacity-75">Please contact the instructor</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
-
 
       <!-- Course Navigation -->
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -128,10 +87,28 @@
               >
                 <div class="flex items-start space-x-3">
                   <div class="flex-shrink-0">
-                    <div class="w-16 h-12 bg-gray-200 rounded flex items-center justify-center">
-                      <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
+                    <!-- Enhanced Thumbnail with fallback -->
+                    <div class="w-16 h-12 bg-gray-200 rounded overflow-hidden relative">
+                      <img
+                        v-if="getValidThumbnail(courseVideo)"
+                        :src="getValidThumbnail(courseVideo)"
+                        :alt="courseVideo.title"
+                        class="w-full h-full object-cover"
+                        @error="onThumbnailError($event, courseVideo)"
+                        loading="lazy"
+                      />
+                      <!-- Fallback icon when no thumbnail -->
+                      <div v-else class="w-full h-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <!-- Play overlay for current video -->
+                      <div v-if="courseVideo.id === video.id" class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
@@ -147,16 +124,11 @@
                       </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">
-                      {{ formatDuration(courseVideo.duration_seconds) }}
+                      {{ formatDuration(courseVideo.duration_in_seconds) }}
                     </p>
                     <p v-if="courseVideo.description" class="text-xs text-gray-600 mt-1 line-clamp-2">
                       {{ truncateText(courseVideo.description, 60) }}
                     </p>
-                  </div>
-                  <div v-if="courseVideo.id === video.id" class="flex-shrink-0">
-                    <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
-                    </svg>
                   </div>
                 </div>
               </div>
@@ -194,7 +166,7 @@
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Language:</span>
-                    <span class="font-medium capitalize">{{ course.language }}</span>
+                    <span class="font-medium capitalize">{{ course.language || 'Not specified' }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Total Videos:</span>
@@ -261,7 +233,7 @@
 
         <div class="flex items-center space-x-4">
           <!-- Manual Complete Button -->
-          <button
+          <!-- <button
             v-if="!isVideoCompleted && videoProgressPercentage > 50"
             @click="markVideoAsCompleted"
             class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -270,7 +242,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             Mark as Complete
-          </button>
+          </button> -->
 
           <button
             v-if="nextVideo"
@@ -307,6 +279,9 @@ const timeWatched = ref(0);
 const videoDuration = ref(0);
 const completionThreshold = 0.9; // 90% watched to mark as completed
 
+// Track failed thumbnails to prevent repeated attempts
+const failedThumbnails = ref(new Set());
+
 // Computed properties
 const currentVideoIndex = computed(() => {
   if (!course.value || !video.value) return 0;
@@ -333,11 +308,84 @@ const videoProgressPercentage = computed(() => {
   return (timeWatched.value / videoDuration.value) * 100;
 });
 
+// Enhanced thumbnail handling
+const getValidThumbnail = (video) => {
+  if (!video) return null;
+
+  // Check if this thumbnail has already failed
+  if (failedThumbnails.value.has(video.id)) {
+    return null;
+  }
+
+  // Check if thumbnail_url exists and is not null/empty
+  if (video.thumbnail_url && video.thumbnail_url.trim() !== '') {
+    return video.thumbnail_url;
+  }
+
+  return null;
+};
+
+// Generate fallback thumbnail from video (client-side)
+const generateThumbnailFromVideo = (videoUrl) => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    video.addEventListener('loadeddata', () => {
+      canvas.width = 320;
+      canvas.height = 180;
+      video.currentTime = Math.min(5, video.duration * 0.1); // 5 seconds or 10% into video
+    });
+
+    video.addEventListener('seeked', () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+      resolve(thumbnail);
+    });
+
+    video.addEventListener('error', () => {
+      resolve(null);
+    });
+
+    video.src = videoUrl;
+    video.load();
+  });
+};
+
+// Handle thumbnail loading errors
+const onThumbnailError = (event, videoItem) => {
+  console.warn(`Thumbnail failed to load for video ${videoItem.id}:`, videoItem.thumbnail_url);
+
+  // Mark this thumbnail as failed
+  failedThumbnails.value.add(videoItem.id);
+
+  // Hide the broken image by setting src to empty
+  event.target.style.display = 'none';
+
+  // Show the fallback icon by triggering a re-render
+  // This is handled by the v-else condition in the template
+};
+
+// Handle video poster errors
+const onPosterError = (event) => {
+  console.warn('Video poster failed to load:', event.target.poster);
+  // Remove the poster attribute to prevent broken image display
+  event.target.removeAttribute('poster');
+};
+
+// Handle video loading errors
+const onVideoError = (event) => {
+  console.error('Video failed to load:', event.target.src);
+  error.value = 'Failed to load video. Please check your connection and try again.';
+};
+
 // Fetch course and video data
 const fetchData = async () => {
   try {
     loading.value = true;
-    const response = await axios.get(`/api/courses/${route.params.slug}`);
+    // Use consistent API endpoint with /api/courses/
+    const response = await axios.get(`/courses/${route.params.slug}`);
     course.value = response.data;
 
     if (!course.value || !course.value.videos) {
@@ -367,9 +415,20 @@ const fetchData = async () => {
 const fetchCourseProgress = async () => {
   try {
     const response = await progressService.getCourseProgress(course.value.id);
-    if (response.success) {
+    if (response.success && response.data) {
+      // Update progress data
       progress.value = response.data.progress;
-      isVideoCompleted.value = isVideoAlreadyCompleted(video.value.id);
+
+      // Update completion status for current video if video is loaded
+      if (video.value) {
+        const wasCompleted = isVideoCompleted.value;
+        const nowCompleted = isVideoAlreadyCompleted(video.value.id);
+
+        // Only update if status actually changed to prevent unnecessary re-renders
+        if (wasCompleted !== nowCompleted) {
+          isVideoCompleted.value = nowCompleted;
+        }
+      }
     }
   } catch (err) {
     console.error('Error fetching course progress:', err);
@@ -382,30 +441,44 @@ const isVideoAlreadyCompleted = (videoId) => {
   return progress.value.video_progress.includes(videoId);
 };
 
-
 // Navigate to video
-const goToVideo = (targetVideo) => {
+const goToVideo = async (targetVideo) => {
+  // Mark current video as completed if it should be (and save immediately)
+  if (videoDuration.value > 0 && !isVideoCompleted.value) {
+    const watchedPercentage = timeWatched.value / videoDuration.value;
+    if (watchedPercentage >= completionThreshold) {
+      await markVideoAsCompleted();
+    }
+  }
+
+  // Update the URL with consistent routing
   router.push(`/course/${route.params.slug}/video/${targetVideo.id}`);
 };
 
 // Navigate to course
 const goToCourse = () => {
-  router.push(`/course/${route.params.slug}`);
+  router.push(`/courses/${route.params.slug}`);
 };
 
 // Video event handlers
 const onVideoLoaded = () => {
   if (videoPlayer.value) {
     videoDuration.value = videoPlayer.value.duration;
+    console.log('Video loaded:', {
+      videoId: video.value?.id,
+      title: video.value?.title,
+      duration: videoDuration.value,
+      url: video.value?.video_url
+    });
   }
 };
 
 const onTimeUpdate = () => {
-  if (videoPlayer.value) {
+  if (videoPlayer.value && videoDuration.value > 0) {
     timeWatched.value = videoPlayer.value.currentTime;
 
     // Check if video should be marked as completed
-    if (videoDuration.value > 0 && !isVideoCompleted.value) {
+    if (!isVideoCompleted.value) {
       const watchedPercentage = timeWatched.value / videoDuration.value;
 
       if (watchedPercentage >= completionThreshold) {
@@ -430,13 +503,37 @@ const markVideoAsCompleted = async () => {
       videoId: video.value.id
     });
 
-    await progressService.markVideoCompleted(course.value.id, video.value.id);
-    isVideoCompleted.value = true;
+    const response = await progressService.markVideoCompleted(course.value.id, video.value.id);
 
-    // Refresh progress
-    await fetchCourseProgress();
+    if (response.success) {
+      // Immediately update local state
+      isVideoCompleted.value = true;
 
-    console.log('Video marked as completed successfully');
+      // Update the progress data immediately without waiting for API call
+      if (progress.value) {
+        // Initialize video_progress array if it doesn't exist
+        if (!progress.value.video_progress) {
+          progress.value.video_progress = [];
+        }
+
+        // Add current video to completed list if not already there
+        if (!progress.value.video_progress.includes(video.value.id)) {
+          progress.value.video_progress.push(video.value.id);
+        }
+
+        // Update progress percentage immediately
+        const totalVideos = course.value.videos.length;
+        const completedVideos = progress.value.video_progress.length;
+        progress.value.progress_percentage = (completedVideos / totalVideos) * 100;
+      }
+
+      console.log('Video marked as completed successfully');
+
+      // Optionally refresh progress in background (don't await)
+      fetchCourseProgress().catch(err => console.error('Background progress refresh failed:', err));
+    } else {
+      console.error('Failed to mark video as completed:', response);
+    }
   } catch (err) {
     console.error('Error marking video as completed:', err);
   }
@@ -469,19 +566,53 @@ const formatDuration = (seconds) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 
+// FORMAT TIME FUNCTION - This was missing!
+const formatTime = (timeInSeconds) => {
+  if (!timeInSeconds || timeInSeconds < 0) return '0:00';
+
+  const hours = Math.floor(timeInSeconds / 3600);
+  const minutes = Math.floor((timeInSeconds % 3600) / 60);
+  const seconds = Math.floor(timeInSeconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 // Watch for route changes
-watch(() => route.params.videoId, async () => {
-  if (course.value) {
-    const videoId = parseInt(route.params.videoId);
-    video.value = course.value.videos.find(v => v.id === videoId);
+watch(() => route.params.videoId, async (newVideoId, oldVideoId) => {
+  if (course.value && newVideoId !== oldVideoId) {
+    const videoId = parseInt(newVideoId);
+    const newVideo = course.value.videos.find(v => v.id === videoId);
 
-    // Reset video progress tracking
-    timeWatched.value = 0;
-    videoDuration.value = 0;
-    isVideoCompleted.value = isVideoAlreadyCompleted(videoId);
+    if (newVideo) {
+      // Reset video player first
+      if (videoPlayer.value) {
+        videoPlayer.value.pause();
+        videoPlayer.value.currentTime = 0;
+      }
 
-    // Fetch updated progress
-    await fetchCourseProgress();
+      // Update video reference
+      video.value = newVideo;
+
+      // Reset video progress tracking
+      timeWatched.value = 0;
+      videoDuration.value = 0;
+
+      // Set completion status immediately from current progress data
+      isVideoCompleted.value = isVideoAlreadyCompleted(videoId);
+
+      // Force video element to reload the new source
+      if (videoPlayer.value && newVideo.video_url) {
+        // Small delay to ensure DOM has updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        videoPlayer.value.load(); // This forces the video to reload with new source
+      }
+
+      // Refresh progress data in background (non-blocking)
+      fetchCourseProgress().catch(err => console.error('Progress refresh failed:', err));
+    }
   }
 });
 

@@ -23,10 +23,10 @@ const routes = [
     component: Courses
   },
   {
-    path: '/courses/:slug',
-    name: 'CourseDetail',
-    component: CourseDetail,
-    props: true
+        path: '/courses/:slug',
+        name: 'CourseDetail',
+        component: CourseDetail,
+        props: true
   },
   {
     path: '/login',

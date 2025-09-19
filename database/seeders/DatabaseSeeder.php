@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
         // Seed users for all roles
         $this->call(UserSeeder::class);
 
+        // Seed categories
+        $this->call(CategorySeeder::class);
+        
         // Seed courses with instructors
         $this->call(CourseSeeder::class);
     }

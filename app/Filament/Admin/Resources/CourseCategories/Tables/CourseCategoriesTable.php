@@ -1,16 +1,13 @@
 <?php
 
-namespace App\Filament\Admin\Resources\Courses\Tables;
+namespace App\Filament\Admin\Resources\CourseCategories\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
-class CoursesTable
+class CourseCategoriesTable
 {
     public static function configure(Table $table): Table
     {
@@ -19,7 +16,7 @@ class CoursesTable
                 //
             ])
             ->filters([
-                TrashedFilter::make(),
+                //
             ])
             ->recordActions([
                 EditAction::make(),
@@ -27,8 +24,6 @@ class CoursesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
                 ]),
             ]);
     }

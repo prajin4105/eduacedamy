@@ -66,8 +66,8 @@
     <div class="bg-white rounded-lg shadow p-6 mb-8">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">Learning Progress Over Time</h3>
       <div class="h-64 flex items-end justify-between space-x-2">
-        <div 
-          v-for="(day, index) in analytics.weeklyProgress" 
+        <div
+          v-for="(day, index) in analytics.weeklyProgress"
           :key="index"
           class="flex-1 bg-indigo-200 rounded-t"
           :style="`height: ${(day.progress / 100) * 100}%`"
@@ -85,8 +85,8 @@
     <div class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">Course Performance</h3>
       <div class="space-y-4">
-        <div 
-          v-for="course in analytics.coursePerformance" 
+        <div
+          v-for="course in analytics.coursePerformance"
           :key="course.id"
           class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
         >
@@ -100,8 +100,8 @@
               <p class="text-xs text-gray-500">{{ course.timeSpent }}</p>
             </div>
             <div class="w-16 bg-gray-200 rounded-full h-2">
-              <div 
-                class="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+              <div
+                class="bg-indigo-600 h-2 rounded-full transition-all duration-500"
                 :style="`width: ${course.progress}%`"
               ></div>
             </div>
@@ -127,11 +127,11 @@ const analytics = ref({
 
 const fetchAnalytics = async () => {
   try {
-    const response = await axios.get('/api/dashboard/progress');
-    
+    const response = await axios.get('/dashboard/progress');
+
     if (response.data.success) {
       const data = response.data.data;
-      
+
       // Calculate analytics
       analytics.value = {
         totalTimeSpent: data.statistics.total_time_spent_seconds || 0,
@@ -153,13 +153,13 @@ const calculateAverageProgress = (data) => {
     ...data.in_progress_courses,
     ...data.not_started_courses
   ];
-  
+
   if (allCourses.length === 0) return 0;
-  
+
   const totalProgress = allCourses.reduce((sum, course) => {
     return sum + (course.enrollment?.progress_percentage || 0);
   }, 0);
-  
+
   return Math.round(totalProgress / allCourses.length);
 };
 
@@ -185,7 +185,7 @@ const generateCoursePerformance = (data) => {
     ...data.in_progress_courses,
     ...data.not_started_courses
   ];
-  
+
   return allCourses.map(course => ({
     id: course.course.id,
     title: course.course.title,
@@ -197,10 +197,10 @@ const generateCoursePerformance = (data) => {
 
 const formatTime = (seconds) => {
   if (!seconds) return '0s';
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   } else if (minutes > 0) {

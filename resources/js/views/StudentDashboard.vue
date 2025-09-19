@@ -177,9 +177,9 @@ const fetchDashboardData = async () => {
     }
 
     const [meRes, enrollmentsRes, coursesRes] = await Promise.all([
-      axios.get('/api/me'),
-      axios.get('/api/enrollments'),
-      axios.get('/api/courses')
+      axios.get('/me'),
+      axios.get('/enrollments'),
+      axios.get('/courses')
     ]);
 
     user.value = meRes.data;
@@ -218,7 +218,7 @@ const enrollInCourse = async (course) => {
       return;
     }
 
-    await axios.post(`/api/enrollments`, {
+    await axios.post(`/enrollments`, {
       course_id: course.id
     });
 

@@ -1,47 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Navigation -->
-  <nav class="bg-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <router-link to="/" class="text-xl font-bold text-indigo-600">
-                EduAcademy
-              </router-link>
-            </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link
-                to="/"
-                class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500"
-                exact
-              >
-                Home
-              </router-link>
-              <router-link
-                to="/courses"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                active-class="border-indigo-500 text-gray-900"
-              >
-                Courses
-              </router-link>
-            </div>
-          </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            <div v-if="user">
-              <span class="text-gray-700">Welcome, {{ user.name }}</span>
-              <button
-                @click="logout"
-                class="ml-4 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+
 
 
     <!-- Hero Section -->
@@ -200,9 +160,10 @@ import { AcademicCapIcon, BookOpenIcon, ClockIcon, UserGroupIcon } from '@heroic
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
 
-const injectedUser = inject('user');
-const injectedIsAuthenticated = inject('isAuthenticated');
+
 const authStore = useAuthStore();
+
+
 
 // Use auth store for authentication state, fallback to injected values
 const user = computed(() => authStore.user || injectedUser);
@@ -269,7 +230,7 @@ const fetchEnrolledCourses = async () => {
   if (!ensureAuthHeader()) return; // not logged in via token
 
   try {
-    const response = await axios.get('/api/enrollments');
+    const response = await axios.get('/enrollments');
     enrolledCourses.value = response.data.map(enrollment => enrollment.course.id);
   } catch (error) {
     console.error('Error fetching enrolled courses:', error);
@@ -293,7 +254,7 @@ const buyCourse = async (course) => {
 
     // Step 1: Check if user is already enrolled
     console.log('Checking enrollment status...');
-    const checkRes = await axios.post('/api/enrollments/check', { course_id: course.id });
+    const checkRes = await axios.post('/enrollments/check', { course_id: course.id });
     console.log('Enrollment check response:', checkRes.data);
 
     if (checkRes.data.already_enrolled) {
@@ -303,7 +264,7 @@ const buyCourse = async (course) => {
     }
 // Step 2: Create order
 console.log('Creating Razorpay order...');
-const { data } = await axios.get(`/api/create-order?amount=${Math.round(course.price * 100)}`);
+const { data } = await axios.get(`/create-order?amount=${Math.round(course.price * 100)}`);
 console.log('Order creation response:', data);
 
 if (!data.orderId) throw new Error("Failed to create Razorpay order");
@@ -318,7 +279,7 @@ if (!data.orderId) throw new Error("Failed to create Razorpay order");
       order_id: data.orderId,
       handler: async (response) => {
         try {
-          const enrollRes = await axios.post("/api/enrollments", {
+          const enrollRes = await axios.post("/enrollments", {
             course_id: course.id,
             payment_id: response.razorpay_payment_id,
             order_id: response.razorpay_order_id,
@@ -369,7 +330,7 @@ const initializeAuth = () => {
 const logout = async () => {
   try {
     // Call logout API
-    await axios.post('/api/logout');
+    await axios.post('/logout');
   } catch (error) {
     console.error('Logout API error:', error);
   } finally {
@@ -386,8 +347,9 @@ onMounted(async () => {
   initializeAuth();
 
   try {
-    const response = await axios.get('/api/courses?limit=6');
-    featuredCourses.value = response.data.slice(0, 6);
+    const response = await axios.get('/courses?per_page=6');
+    // Handle both paginated and non-paginated responses
+    featuredCourses.value = response.data.data || response.data;
     await fetchEnrolledCourses();
   } catch (error) {
     console.error('Error fetching featured courses:', error);

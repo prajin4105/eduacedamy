@@ -41,10 +41,10 @@ class ProgressService {
    */
   async updateProgress() {
     try {
-      const response = await axios.get('/api/dashboard/progress');
-      
+      const response = await axios.get('/dashboard/progress');
+
       if (response.data.success) {
-        this.notifyListeners('progress-updated', response.data.data);
+              this.notifyListeners('progress-updated', response.data.data);
       }
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -60,23 +60,23 @@ class ProgressService {
   async markVideoCompleted(courseId, videoId) {
     try {
       console.log('ProgressService: Marking video as completed', { courseId, videoId });
-      
-      const response = await axios.post(`/api/courses/${courseId}/videos/${videoId}/complete`);
-      
-      console.log('ProgressService: Video completion response', response.data);
-      
+
+      const response = await axios.post(`/courses/${courseId}/videos/${videoId}/complete`);
+
+      console.log('ProgressService: Video completion response',       response.data);
+
       if (response.data.success) {
-        this.notifyListeners('video-completed', {
+        this.notifyListeners('      video-completed', {
           courseId,
           videoId,
           progress: response.data.data.progress,
           isCompleted: response.data.data.is_course_completed
         });
-        
+
         // Update progress immediately
         this.updateProgress();
-      }
-      
+              }
+
       return response.data;
     } catch (error) {
       console.error('ProgressService: Error marking video as completed:', error);
@@ -92,10 +92,10 @@ class ProgressService {
    */
   async updateTimeSpent(courseId, seconds) {
     try {
-      const response = await axios.post(`/api/courses/${courseId}/time-spent`, {
+      const response = await axios.post(`/courses/${courseId}/time-spent`, {
         seconds: seconds
       });
-      
+
       if (response.data.success) {
         this.notifyListeners('time-updated', {
           courseId,
@@ -103,7 +103,7 @@ class ProgressService {
           formattedTime: response.data.data.formatted_time_spent
         });
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Error updating time spent:', error);
@@ -117,7 +117,7 @@ class ProgressService {
    */
   async getCourseProgress(courseId) {
     try {
-      const response = await axios.get(`/api/courses/${courseId}/progress`);
+      const response = await axios.get(`/courses/${courseId}/progress`);
       return response.data;
     } catch (error) {
       console.error('Error fetching course progress:', error);
@@ -131,7 +131,7 @@ class ProgressService {
    */
   async getCourseEnrollmentStatus(courseId) {
     try {
-      const response = await axios.get(`/api/courses/${courseId}/enrollment-status`);
+      const response = await axios.get(`/courses/${courseId}/enrollment-status`);
       return response.data;
     } catch (error) {
       console.error('Error fetching enrollment status:', error);
@@ -184,7 +184,7 @@ class ProgressService {
    */
   async getCurrentProgress() {
     try {
-      const response = await axios.get('/api/dashboard/progress');
+      const response = await axios.get('/dashboard/progress');
       return response.data.success ? response.data.data : null;
     } catch (error) {
       console.error('Error fetching current progress:', error);

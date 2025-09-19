@@ -12,122 +12,141 @@ class UserSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    /**
+     * Create a user if it doesn't already exist.
+     *
+     * @param array $userData
+     * @return User
+     */
+    private function createUserIfNotExists($userData)
+    {
+        return User::firstOrCreate(
+            ['email' => $userData['email']], // Unique identifier
+            [
+                'name' => $userData['name'],
+                'password' => Hash::make($userData['password']),
+                'role' => $userData['role'],
+                'email_verified_at' => now(),
+            ]
+        );
+    }
+
+    public function run()
     {
         // Admin Users
-        User::create([
+        $this->createUserIfNotExists([
             'name' => 'Admin User',
             'email' => 'admin@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'email_verified_at' => now(),
+            'password' => 'password',
+            'role' => 'admin'
         ]);
 
-        User::create([
+        $this->createUserIfNotExists([
             'name' => 'Super Admin',
             'email' => 'superadmin@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'email_verified_at' => now(),
+            'password' => 'password',
+            'role' => 'admin'
         ]);
 
         // Instructor Users
-        User::create([
-            'name' => 'John Smith',
-            'email' => 'john.smith@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'instructor',
-            'email_verified_at' => now(),
-        ]);
+        $instructors = [
+            [
+                'name' => 'John Smith',
+                'email' => 'john.smith@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ],
+            [
+                'name' => 'Sarah Johnson',
+                'email' => 'sarah.johnson@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ],
+            [
+                'name' => 'Michael Chen',
+                'email' => 'michael.chen@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ],
+            [
+                'name' => 'Emily Davis',
+                'email' => 'emily.davis@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ],
+            [
+                'name' => 'Michael Brown',
+                'email' => 'michael.brown@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ],
+            [
+                'name' => 'Emma Wilson',
+                'email' => 'emma.wilson@eduacademy.com',
+                'password' => 'password',
+                'role' => 'instructor'
+            ]
+        ];
 
-        User::create([
-            'name' => 'Sarah Johnson',
-            'email' => 'sarah.johnson@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'instructor',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Michael Brown',
-            'email' => 'michael.brown@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'instructor',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([  
-            'name' => 'Emily Davis',
-            'email' => 'emily.davis@eduacademy.com',
-            'password' => Hash::make('password'),
-            'role' => 'instructor',
-            'email_verified_at' => now(),
-        ]);
+        foreach ($instructors as $instructor) {
+            $this->createUserIfNotExists($instructor);
+        }
 
         // Student Users
-        User::create([
-            'name' => 'Alice Wilson',
-            'email' => 'alice.wilson@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
+        $students = [
+            [
+                'name' => 'Alice Wilson',
+                'email' => 'alice.wilson@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Bob Martinez',
+                'email' => 'bob.martinez@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Carol Thompson',
+                'email' => 'carol.thompson@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'David Garcia',
+                'email' => 'david.garcia@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Eva Rodriguez',
+                'email' => 'eva.rodriguez@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Frank Lee',
+                'email' => 'frank.lee@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Grace Kim',
+                'email' => 'grace.kim@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ],
+            [
+                'name' => 'Henry Chen',
+                'email' => 'henry.chen@student.com',
+                'password' => 'password',
+                'role' => 'student'
+            ]
+        ];
 
-        User::create([
-            'name' => 'Bob Martinez',
-            'email' => 'bob.martinez@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Carol Thompson',
-            'email' => 'carol.thompson@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'David Garcia',
-            'email' => 'david.garcia@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Eva Rodriguez',
-            'email' => 'eva.rodriguez@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Frank Lee',
-            'email' => 'frank.lee@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Grace Kim',
-            'email' => 'grace.kim@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Henry Chen',
-            'email' => 'henry.chen@student.com',
-            'password' => Hash::make('password'),
-            'role' => 'student',
-            'email_verified_at' => now(),
-        ]);
+        foreach ($students as $student) {
+            $this->createUserIfNotExists($student);
+        }
 
         // Additional random students using factory
         User::factory(20)->create([

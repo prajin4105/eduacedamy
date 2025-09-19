@@ -11,36 +11,71 @@ use Illuminate\Support\Facades\Auth;
 
 class CourseController extends Controller
 {
+    /**
+     * Display a listing of courses with filters and pagination.
+     */
     public function index(Request $request)
     {
-        $query = Course::with(['instructor', 'enrollments', 'videos'])
-            ->where('is_published', true);
+        $query = Course::with([
+            'instructor:id,name,profile_photo_path',
+            'categories:id,name,slug',
+            'enrollments',
+            'videos'
+        ])
+        ->withCount(['enrollments', 'videos'])
+        ->where('is_published', true);
 
-        // Search functionality
-        if ($request->has('search') && $request->search) {
+        // Search filter
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('instructor', function($instructorQuery) use ($search) {
+                  ->orWhereHas('instructor', function ($instructorQuery) use ($search) {
                       $instructorQuery->where('name', 'like', "%{$search}%");
                   });
             });
         }
 
+        // Category filter
+        if ($request->has('categories')) {
+            $categoryIds = is_array($request->categories)
+                ? $request->categories
+                : explode(',', $request->categories);
+
+            $query->whereHas('categories', function ($q) use ($categoryIds) {
+                $q->whereIn('categories.id', $categoryIds);
+            }, '>=', count($categoryIds));
+        }
+
         // Level filter
-        if ($request->has('level') && $request->level) {
-            $query->where('level', $request->level);
+        if ($request->has('levels')) {
+            $levels = is_array($request->levels)
+                ? $request->levels
+                : explode(',', $request->levels);
+
+            $query->whereIn('level', $levels);
         }
 
         // Instructor filter
-        if ($request->has('instructor') && $request->instructor) {
+        if ($request->filled('instructor')) {
             $query->where('instructor_id', $request->instructor);
+        }
+
+        // Price filters
+        if ($request->has('min_price')) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->has('max_price')) {
+            $query->where('price', '<=', $request->max_price);
         }
 
         // Sorting
         $sortBy = $request->get('sort', 'newest');
         switch ($sortBy) {
+            case 'newest':
+                $query->latest('published_at');
+                break;
             case 'oldest':
                 $query->oldest('published_at');
                 break;
@@ -51,71 +86,71 @@ class CourseController extends Controller
                 $query->orderBy('price', 'desc');
                 break;
             case 'popular':
-                $query->withCount('enrollments')->orderBy('enrollments_count', 'desc');
+                $query->orderBy('enrollments_count', 'desc');
                 break;
-            case 'newest':
             default:
                 $query->latest('published_at');
-                break;
         }
 
-        $courses = $query->get()->map(function ($course) use ($request) {
+        // Pagination
+        $perPage = min($request->get('per_page', 12), 50);
+        $page = $request->get('page', 1);
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform response
+        $courses = $paginator->getCollection()->map(function ($course) use ($request) {
             $enrollmentStatus = null;
             $isEnrolled = false;
-            
-            // Check enrollment status if user is authenticated
-            if (Auth::check()) {
-                $enrollment = Enrollment::where('user_id', Auth::id())
-                    ->where('course_id', $course->id)
-                    ->first();
-                
+
+            if ($request->user()) {
+                $enrollment = $course->enrollments()->where('user_id', $request->user()->id)->first();
                 if ($enrollment) {
-                    $isEnrolled = $enrollment->status === 'completed';
-                    $enrollmentStatus = $enrollment->getProgressStatus();
+                    $isEnrolled = true;
+                    $enrollmentStatus = $enrollment->status;
                 }
             }
-            
+
             return [
                 'id' => $course->id,
                 'title' => $course->title,
                 'slug' => $course->slug,
                 'description' => $course->description,
-                'excerpt' => substr($course->description, 0, 150) . '...',
-                'price' => (float) $course->price,
-                'image' => $course->image ? asset('storage/' . $course->image) : null,
+                'price' => $course->price,
+           'image' => $course->image ? asset('storage/' . $course->image) : null,
+
                 'level' => $course->level,
-                'language' => $course->language,
-                'duration_in_minutes' => $course->duration_in_minutes,
-                'created_at' => $course->created_at,
-                'published_at' => $course->published_at,
-                'instructor' => [
-                    'id' => $course->instructor->id,
-                    'name' => $course->instructor->name,
-                    'email' => $course->instructor->email,
-                    'avatar' => null, // optional avatar
-                ],
-                'enrollments_count' => $course->enrollments->where('status', 'completed')->count(),
-                'rating' => 4.5,
-                'reviews_count' => 0,
-                'lessons_count' => $course->videos->count(),
+                'duration' => $course->duration,
+                'instructor' => $course->instructor->only(['id', 'name', 'profile_photo_path']),
+                'categories' => $course->categories->map->only(['id', 'name', 'slug']),
+                'enrollments_count' => $course->enrollments_count,
+                'rating' => 0,  // No reviews yet
+                'reviews_count' => 0, // No reviews yet
+                'lessons_count' => $course->videos_count,
                 'is_enrolled' => $isEnrolled,
                 'enrollment_status' => $enrollmentStatus,
-                // 👇 Add video list also (short version)
                 'videos' => $course->videos->map(function ($video) {
                     return [
                         'id' => $video->id,
-                        'title' => $video->title,
-                        'video_url' => $video->video_url ? asset('storage/' . $video->video_url) : null,
-                        'thumbnail_url' => $video->thumbnail_url ? asset('storage/' . $video->thumbnail_url) : null,
-                        'duration_in_seconds' => $video->duration_seconds,
-                        'sort_order' => $video->sort_order,
-                        'is_published' => $video->is_published,
+        'title' => $video->title,
+        'description' => $video->description,
+        'duration_in_seconds' => $video->duration_seconds,
+        'sort_order' => $video->sort_order,
+        'video_url' => $video->video_url,
+        'thumbnail_url' => $video->thumbnail_url,
                     ];
                 }),
             ];
         });
 
-        return response()->json($courses);
+        return response()->json([
+            'data' => $courses,
+            'pagination' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ]
+        ]);
     }
 
     public function show($slug)
@@ -127,13 +162,12 @@ class CourseController extends Controller
 
         $enrollmentStatus = null;
         $isEnrolled = false;
-        
-        // Check enrollment status if user is authenticated
+
         if (Auth::check()) {
             $enrollment = Enrollment::where('user_id', Auth::id())
                 ->where('course_id', $course->id)
                 ->first();
-            
+
             if ($enrollment) {
                 $isEnrolled = $enrollment->status === 'completed';
                 $enrollmentStatus = $enrollment->getProgressStatus();
@@ -171,7 +205,7 @@ class CourseController extends Controller
                 ];
             }),
             'enrollments_count' => $course->enrollments->where('status', 'completed')->count(),
-            'rating' => 4.5,
+            'rating' => 0,
             'reviews_count' => 0,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
