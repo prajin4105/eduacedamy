@@ -72,6 +72,15 @@ class User extends Authenticatable
         return $this->hasMany(CourseProgress::class);
     }
 
+
+/**
+ * Get the certificates for the user
+ */
+public function certificates()
+{
+    return $this->hasMany(Certificate::class);
+}
+
     public function isEnrolledIn($courseId): bool
     {
         return $this->enrollments()->where('course_id', $courseId)->where('status', 'completed')->exists();

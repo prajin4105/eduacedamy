@@ -49,100 +49,100 @@ class UserSeeder extends Seeder
         ]);
 
         // Instructor Users
-        $instructors = [
-            [
-                'name' => 'John Smith',
-                'email' => 'john.smith@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ],
-            [
-                'name' => 'Sarah Johnson',
-                'email' => 'sarah.johnson@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ],
-            [
-                'name' => 'Michael Chen',
-                'email' => 'michael.chen@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ],
-            [
-                'name' => 'Emily Davis',
-                'email' => 'emily.davis@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ],
-            [
-                'name' => 'Michael Brown',
-                'email' => 'michael.brown@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ],
-            [
-                'name' => 'Emma Wilson',
-                'email' => 'emma.wilson@eduacademy.com',
-                'password' => 'password',
-                'role' => 'instructor'
-            ]
-        ];
+        // $instructors = [
+        //     [
+        //         'name' => 'John Smith',
+        //         'email' => 'john.smith@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ],
+        //     [
+        //         'name' => 'Sarah Johnson',
+        //         'email' => 'sarah.johnson@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ],
+        //     [
+        //         'name' => 'Michael Chen',
+        //         'email' => 'michael.chen@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ],
+        //     [
+        //         'name' => 'Emily Davis',
+        //         'email' => 'emily.davis@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ],
+        //     [
+        //         'name' => 'Michael Brown',
+        //         'email' => 'michael.brown@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ],
+        //     [
+        //         'name' => 'Emma Wilson',
+        //         'email' => 'emma.wilson@eduacademy.com',
+        //         'password' => 'password',
+        //         'role' => 'instructor'
+        //     ]
+        // ];
 
         foreach ($instructors as $instructor) {
             $this->createUserIfNotExists($instructor);
         }
 
         // Student Users
-        $students = [
-            [
-                'name' => 'Alice Wilson',
-                'email' => 'alice.wilson@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Bob Martinez',
-                'email' => 'bob.martinez@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Carol Thompson',
-                'email' => 'carol.thompson@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'David Garcia',
-                'email' => 'david.garcia@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Eva Rodriguez',
-                'email' => 'eva.rodriguez@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Frank Lee',
-                'email' => 'frank.lee@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Grace Kim',
-                'email' => 'grace.kim@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ],
-            [
-                'name' => 'Henry Chen',
-                'email' => 'henry.chen@student.com',
-                'password' => 'password',
-                'role' => 'student'
-            ]
-        ];
+        // $students = [
+        //     [
+        //         'name' => 'Alice Wilson',
+        //         'email' => 'alice.wilson@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Bob Martinez',
+        //         'email' => 'bob.martinez@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Carol Thompson',
+        //         'email' => 'carol.thompson@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'David Garcia',
+        //         'email' => 'david.garcia@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Eva Rodriguez',
+        //         'email' => 'eva.rodriguez@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Frank Lee',
+        //         'email' => 'frank.lee@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Grace Kim',
+        //         'email' => 'grace.kim@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ],
+        //     [
+        //         'name' => 'Henry Chen',
+        //         'email' => 'henry.chen@student.com',
+        //         'password' => 'password',
+        //         'role' => 'student'
+        //     ]
+        // ];
 
         foreach ($students as $student) {
             $this->createUserIfNotExists($student);

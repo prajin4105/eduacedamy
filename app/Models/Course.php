@@ -127,6 +127,15 @@ class Course extends Model
         return round(($completedEnrollments / $totalEnrollments) * 100, 2);
     }
 
+
+
+/**
+ * Get the certificates for the user
+ */
+public function certificates()
+{
+    return $this->hasMany(Certificate::class);
+}
     protected static function boot()
     {
         parent::boot();

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Page header -->
-    
+
     <div class="bg-white shadow">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold text-gray-900">All Courses</h1>
@@ -188,9 +188,12 @@
                           {{ course.title }}
                         </router-link>
                       </h2>
-                      <p class="text-gray-600 mb-3">
-                        {{ course.description || course.excerpt || "No description available" }}
-                      </p>
+
+                      <!-- Fixed description rendering with HTML support -->
+                      <div
+                        class="text-gray-600 mb-3 line-clamp-3"
+                        v-html="course.description || course.excerpt || 'No description available'"
+                      ></div>
 
                       <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                         <span v-if="course.level" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -550,3 +553,13 @@ onMounted(async () => {
   ]);
 });
 </script>
+
+<style scoped>
+/* Additional styles for better description display */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

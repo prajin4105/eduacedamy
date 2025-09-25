@@ -66,6 +66,18 @@ const routes = [
     meta: { requiresAuth: true },
     props: true
   },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/Register.vue'),
+    meta: { guest: true }
+  },
+  {
+    path:'/certificates',
+    name: 'Certificates',
+    component: () => import('../views/Certificates.vue'),
+    meta: { requiresAuth: true }
+  },
   // Not found route (must be last)
   {
     path: '/:pathMatch(.*)*',

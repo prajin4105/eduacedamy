@@ -34,7 +34,7 @@ class CourseSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'instructor_id' => 2, // Replace with valid instructor_id
+                'instructor_id' => 1, // Replace with valid instructor_id
                 'title' => 'Advanced Laravel Techniques',
                 'slug' => Str::slug('Advanced Laravel Techniques'),
                 'description' => 'Deep dive into advanced features of the Laravel framework.',

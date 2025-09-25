@@ -22,30 +22,41 @@ class UserResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Schema $schema): Schema
-    {
-        return $schema->schema([
-            Section::make('User Information') // ✅ use Schemas Section
-                ->schema([
-                    Forms\Components\TextInput::make('name')
-                        ->required()
-                        ->maxLength(255),
+   public static function form(Schema $schema): Schema
+{
+    return $schema->schema([
+        Section::make('User Information')
+            ->schema([
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
 
-                    Forms\Components\TextInput::make('email')
-                        ->email()
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(255),
+                Forms\Components\TextInput::make('email')
+                    ->email()
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
 
-                    Forms\Components\TextInput::make('password')
-                        ->password()
-                        ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
-                        ->dehydrated(fn ($state) => filled($state))
-                        ->required(fn (string $context): bool => $context === 'create')
-                        ->maxLength(255),
-                ]),
-        ]);
-    }
+                Forms\Components\TextInput::make('password')
+                    ->password()
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->maxLength(255),
+
+                Forms\Components\Select::make('role')
+                    ->options([
+                        'student' => 'Student',
+                        'instructor' => 'Instructor',
+                        'admin' => 'Admin',
+                    ])
+                    ->required()
+                    ->default('student'),
+
+            ]),
+    ]);
+}
+
 
     public static function table(Table $table): Table
     {

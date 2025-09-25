@@ -37,35 +37,42 @@ class CourseProgressController extends Controller
             }
 
             // Get or create progress record
-            $progress = CourseProgress::firstOrCreate(
-                ['user_id' => $user->id, 'course_id' => $courseId],
-                [
-                    'total_videos' => $course->getTotalVideosCount(),
-                    'videos_completed' => 0,
-                    'progress_percentage' => 0,
-                ]
-            );
+          // Fetch the progress data
+$progress = CourseProgress::firstOrCreate(
+    ['user_id' => $user->id, 'course_id' => $courseId],
+    [
+        'total_videos' => $course->getTotalVideosCount(),
+        'videos_completed' => 0,
+        'progress_percentage' => 0,
+    ]
+);
 
-            // Update total videos count if course videos changed
-            if ($progress->total_videos !== $course->getTotalVideosCount()) {
-                $progress->total_videos = $course->getTotalVideosCount();
-                $progress->progress_percentage = $progress->calculateProgressPercentage();
-                $progress->save();
-            }
+// Ensure video_progress is a valid stringified JSON array
+if (is_array($progress->video_progress)) {
+    $progress->video_progress = json_encode($progress->video_progress);
+}
 
-            // Update enrollment progress
-            $enrollment->updateProgress($progress->progress_percentage);
+// Update total videos count if course videos changed
+if ($progress->total_videos !== $course->getTotalVideosCount()) {
+    $progress->total_videos = $course->getTotalVideosCount();
+    $progress->progress_percentage = $progress->calculateProgressPercentage();
+    $progress->save();
+}
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'progress' => $progress,
-                    'enrollment' => $enrollment,
-                    'course' => $course->load('videos'),
-                    'formatted_time_spent' => $progress->formatted_time_spent,
-                    'status' => $progress->status,
-                ]
-            ]);
+// Update enrollment progress
+$enrollment->updateProgress($progress->progress_percentage);
+
+return response()->json([
+    'success' => true,
+    'data' => [
+        'progress' => $progress,
+        'enrollment' => $enrollment,
+        'course' => $course->load('videos'),
+        'formatted_time_spent' => $progress->formatted_time_spent,
+        'status' => $progress->status,
+    ]
+]);
+
 
         } catch (\Exception $e) {
             return response()->json([

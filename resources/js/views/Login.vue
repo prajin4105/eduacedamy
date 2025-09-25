@@ -125,9 +125,9 @@
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
             Don't have an account?
-            <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <router-link to="/register" class="font-medium text-indigo-600 hover:text-indigo-500">
               Sign up here
-            </a>
+            </router-link>
           </p>
         </div>
       </div>

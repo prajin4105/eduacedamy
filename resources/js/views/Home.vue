@@ -71,6 +71,7 @@
                     <p class="mt-3 text-base text-gray-500">{{ course.excerpt || 'Learn from industry experts with this comprehensive course.' }}</p>
                   </router-link>
                 </div>
+
                 <div class="mt-6 flex items-center justify-between">
                   <div class="flex items-center">
                     <div class="flex-shrink-0">

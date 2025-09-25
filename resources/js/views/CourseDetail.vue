@@ -1,34 +1,39 @@
 <template>
-    <div v-if="loading" class="py-12 flex justify-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-    </div>
+  <div v-if="loading" class="py-12 flex justify-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+  </div>
 
-    <div v-else-if="course" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Course Header -->
-      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-          <h1 class="text-3xl font-bold text-gray-900">{{ course.title }}</h1>
-          <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ course.subtitle }}</p>
-        </div>
-        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Course Info -->
-            <div class="md:col-span-2">
-              <div class="prose max-w-none" v-html="course.description"></div>
+  <!-- Course Details -->
+  <div v-else-if="course" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Course Header -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h1 class="text-3xl font-bold text-gray-900">{{ course.title }}</h1>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ course.subtitle }}</p>
+      </div>
 
-              <div v-if="course.learning_outcomes" class="mt-8">
-                <h3 class="text-lg font-medium text-gray-900">What you'll learn</h3>
-                <ul class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <li v-for="(outcome, index) in formattedLearningOutcomes" :key="index" class="flex items-start">
-                    <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{{ outcome }}</span>
-                  </li>
-                </ul>
-              </div>
+      <!-- Enrollment Status -->
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Course Info -->
+          <div class="md:col-span-2">
+            <div class="prose max-w-none" v-html="course.description"></div>
 
-             <div v-if="course.requirements" class="mt-8">
+            <!-- What you'll learn -->
+            <div v-if="course.learning_outcomes" class="mt-8">
+              <h3 class="text-lg font-medium text-gray-900">What you'll learn</h3>
+              <ul class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <li v-for="(outcome, index) in formattedLearningOutcomes" :key="index" class="flex items-start">
+                  <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{{ outcome }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Requirements -->
+            <div v-if="course.requirements" class="mt-8">
               <h3 class="text-lg font-medium text-gray-900">Requirements</h3>
               <ul class="mt-2 space-y-1">
                 <li v-for="(req, index) in formattedRequirements" :key="index" class="flex items-start">
@@ -37,109 +42,96 @@
                 </li>
               </ul>
             </div>
+          </div>
 
-            </div>
-
-            <!-- Course Sidebar -->
-            <div class="md:col-span-1">
-              <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-                <div class="aspect-w-16 aspect-h-9 mb-4">
-                  <div class="relative w-full h-48 bg-gray-200 rounded overflow-hidden">
-                    <img
-                      :src="getCourseImage(course)"
-                      :alt="course.title"
-                      class="w-full h-full object-cover"
-                      @error="handleImageError"
-                      @load="handleImageLoad"
-                    >
-                    <div v-if="imageLoading" class="absolute inset-0 flex items-center justify-center bg-gray-200">
-                      <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
-                    </div>
-                    <div v-if="imageError" class="absolute inset-0 flex items-center justify-center bg-gray-100">
-                      <div class="text-center text-gray-500">
-                        <svg class="mx-auto h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                        </svg>
-                        <p class="text-sm">Course Image</p>
-                      </div>
+          <!-- Course Sidebar -->
+          <div class="md:col-span-1">
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+              <div class="aspect-w-16 aspect-h-9 mb-4">
+                <div class="relative w-full h-48 bg-gray-200 rounded overflow-hidden">
+                  <img
+                    :src="getCourseImage(course)"
+                    :alt="course.title"
+                    class="w-full h-full object-cover"
+                    @error="handleImageError"
+                    @load="handleImageLoad"
+                  />
+                  <div v-if="imageLoading" class="absolute inset-0 flex items-center justify-center bg-gray-200">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+                  </div>
+                  <div v-if="imageError" class="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div class="text-center text-gray-500">
+                      <svg class="mx-auto h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                      </svg>
+                      <p class="text-sm">Course Image</p>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="mt-4">
-                  <div class="flex items-baseline">
-                    <span class="text-2xl font-bold text-gray-900">${{ course.price || '0' }}</span>
-                    <span v-if="course.original_price" class="ml-2 text-sm text-gray-500 line-through">${{ course.original_price }}</span>
-                  </div>
+              <div class="mt-4">
+                <div class="flex items-baseline">
+                  <span class="text-2xl font-bold text-gray-900">${{ course.price || '0' }}</span>
+                  <span v-if="course.original_price" class="ml-2 text-sm text-gray-500 line-through">${{ course.original_price }}</span>
+                </div>
 
-                  <div class="mt-4 space-y-4">
-                    <!-- Enrollment Status -->
-                    <div v-if="course.is_enrolled" class="mb-4">
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700">Progress</span>
-                        <span class="text-sm font-medium text-gray-900">{{ getProgressPercentage() }}%</span>
-                      </div>
-                      <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          class="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                          :style="`width: ${getProgressPercentage()}%`"
-                        ></div>
-                      </div>
-                      <div class="mt-2">
-                        <span
-                          :class="[
-                            'px-2 py-1 rounded-full text-xs font-medium',
-                            course.enrollment_status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : course.enrollment_status === 'in_progress'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          ]"
-                        >
-                          {{ getEnrollmentStatusText() }}
-                        </span>
-                      </div>
+                <div class="mt-4 space-y-4">
+                  <!-- Enrollment Status -->
+                  <div v-if="course.is_enrolled" class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm font-medium text-gray-700">Progress</span>
+                      <span class="text-sm font-medium text-gray-900">{{ getProgressPercentage() }}%</span>
                     </div>
-
-                    <button
-                      @click="course.is_enrolled ? goToCourse() : enrollCourse()"
-                      :disabled="enrolling"
-                      class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {{ enrolling ? 'Enrolling...' : (course.is_enrolled ? 'Start Learning' : 'Enroll Now') }}
-                    </button>
-
-                    <button
-                      @click="toggleWishlist"
-                      class="w-full bg-white text-gray-700 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      {{ isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' }}
-                    </button>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        class="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                        :style="`width: ${getProgressPercentage()}%`"
+                      ></div>
+                    </div>
+                    <div class="mt-2">
+                      <span
+                        :class="[ 'px-2 py-1 rounded-full text-xs font-medium',
+                        course.enrollment_status === 'completed' ? 'bg-green-100 text-green-800' :
+                        course.enrollment_status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800']"
+                      >
+                        {{ getEnrollmentStatusText() }}
+                      </span>
+                    </div>
                   </div>
 
-                  <div class="mt-6 border-t border-gray-200 pt-4">
-                    <h4 class="text-sm font-medium text-gray-900">This course includes:</h4>
-                    <ul class="mt-2 space-y-2 text-sm text-gray-600">
-                      <li class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {{ course.duration || 'Lifetime' }} access
-                      </li>
-                      <li class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Certificate of completion
-                      </li>
-                      <li v-if="course.videos && course.videos.length" class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }}
-                      </li>
-                    </ul>
-                  </div>
+                  <button
+                    @click="course.is_enrolled ? goToCourse() : enrollCourse()"
+                    :disabled="enrolling"
+                    class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{ enrolling ? 'Enrolling...' : (course.is_enrolled ? 'Start Learning' : 'Enroll Now') }}
+                  </button>
+                  
+                </div>
+
+                <div class="mt-6 border-t border-gray-200 pt-4">
+                  <h4 class="text-sm font-medium text-gray-900">This course includes:</h4>
+                  <ul class="mt-2 space-y-2 text-sm text-gray-600">
+                    <li class="flex items-center">
+                      <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {{ course.duration || 'Lifetime' }} access
+                    </li>
+                    <li class="flex items-center">
+                      <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Certificate of completion
+                    </li>
+                    <li v-if="course.videos && course.videos.length" class="flex items-center">
+                      <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }}
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -156,98 +148,35 @@
         />
       </div>
 
-      <!-- Course Content -->
-      <div v-if="!course.is_enrolled" class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+      <!-- Course Content only visible if the user is enrolled -->
+
+
+      <!-- If the user is NOT enrolled, show the enroll message -->
+      <div v-else class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
           <h2 class="text-xl font-semibold text-gray-900">Course Content</h2>
-          <p v-if="course.videos && course.videos.length" class="text-sm text-gray-500">{{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }}</p>
+          <p v-if="course.videos && course.videos.length" class="text-sm text-gray-500">{{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }} available</p>
         </div>
-        <div class="border-t border-gray-200">
-          <!-- If course has videos, show them directly -->
-          <div v-if="course.videos && course.videos.length" class="divide-y divide-gray-200">
-            <div v-for="(video, index) in course.videos" :key="video.id" class="p-4 hover:bg-gray-50">
-              <div class="flex items-center space-x-3">
-                <div class="flex-shrink-0">
-                  <div class="w-12 h-8 bg-gray-200 rounded flex items-center justify-center">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">{{ index + 1 }}. {{ video.title }}</p>
-                      <p v-if="video.description" class="text-xs text-gray-500 mt-1">{{ truncateText(video.description, 80) }}</p>
-                    </div>
-                    <div class="text-right">
-                      <span v-if="video.duration_seconds" class="text-xs text-gray-500">{{ formatDuration(video.duration_seconds) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fallback: Show sections if available -->
-          <div v-else-if="courseSections.length" class="divide-y divide-gray-200">
-            <div v-for="(section, sectionIndex) in courseSections" :key="sectionIndex" class="border-b border-gray-200">
-              <button
-                @click="toggleSection(sectionIndex)"
-                class="w-full px-4 py-4 text-left hover:bg-gray-50 focus:outline-none"
-              >
-                <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-gray-900">{{ section.title }}</h3>
-                  <span class="text-gray-500">
-                    {{ section.lessons?.length || 0 }} {{ (section.lessons?.length === 1) ? 'lesson' : 'lessons' }}
-                  </span>
-                </div>
-              </button>
-              <div v-show="expandedSections.includes(sectionIndex)" class="bg-gray-50">
-                <div v-for="(lesson, lessonIndex) in section.lessons" :key="lessonIndex" class="border-t border-gray-200">
-                  <div class="px-6 py-3 flex items-center">
-                    <span class="text-gray-500 text-sm mr-4">{{ lessonIndex + 1 }}</span>
-                    <span class="text-gray-700">{{ lesson.title }}</span>
-                    <span class="ml-auto text-sm text-gray-500">{{ lesson.duration }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- No content message -->
-          <div v-else class="p-8 text-center text-gray-500">
-            <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <p>Course content will be available after enrollment</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Instructor -->
-      <div v-if="course.instructor" class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-          <h2 class="text-xl font-semibold text-gray-900">Instructor</h2>
-        </div>
-        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-          <div class="flex items-start">
-            <img
-              class="h-16 w-16 rounded-full"
-              :src="getInstructorAvatar(course.instructor)"
-              :alt="course.instructor.name"
-              @error="handleInstructorAvatarError"
-            >
-            <div class="ml-4">
-              <h3 class="text-lg font-medium text-gray-900">{{ course.instructor.name }}</h3>
-              <p v-if="course.instructor.title" class="text-gray-500">{{ course.instructor.title }}</p>
-              <p v-if="course.instructor.bio" class="mt-2 text-gray-600">{{ course.instructor.bio }}</p>
-            </div>
-          </div>
+        <div class="border-t border-gray-200 p-8 text-center text-gray-500">
+          <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>To access the course content, please enroll first.</p>
+          <button
+            @click="enrollCourse"
+            :disabled="enrolling"
+            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ enrolling ? 'Enrolling...' : 'Enroll Now' }}
+          </button>
         </div>
       </div>
     </div>
+  </div>
 </template>
+
+
+
 
 <script>
 import { ref, computed, onMounted } from 'vue';
@@ -468,37 +397,38 @@ export default {
         course.value.is_enrolled = false;
       }
     };
+const enrollCourse = async () => {
+  if (!authStore.isAuthenticated) {
+    window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+    return;
+  }
 
-    const enrollCourse = async () => {
-      if (!authStore.isAuthenticated) {
-        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
-        return;
-      }
+  try {
+    enrolling.value = true;
+    const response = await axios.post('/enrollments', {
+      course_id: course.value.id
+    });
 
-      try {
-        enrolling.value = true;
-        const response = await axios.post('/enrollments', {
-          course_id: course.value.id
-        });
+    if (response.data.message) {
+      course.value.is_enrolled = true;
+      course.value.enrollment_status = 'enrolled';
 
-        if (response.data.message) {
-          course.value.is_enrolled = true;
-          course.value.enrollment_status = 'enrolled';
+      setTimeout(() => {
+        window.location.href = `/course/${route.params.slug}`;
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('Error enrolling in course:', error);
+    if (error.response?.status === 401) {
+      authStore.clearAuth();
+      window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+    }
+  } finally {
+    enrolling.value = false;
+  }
+};
 
-          setTimeout(() => {
-            window.location.href = `/course/${route.params.slug}`;
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error enrolling in course:', error);
-        if (error.response?.status === 401) {
-          authStore.clearAuth();
-          window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
-        }
-      } finally {
-        enrolling.value = false;
-      }
-    };
+
 
     const toggleWishlist = async () => {
       if (!authStore.isAuthenticated) {
@@ -569,3 +499,4 @@ export default {
   }
 };
 </script>
+

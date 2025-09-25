@@ -52,6 +52,33 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+    public function register(Request $request)
+{
+    $validated = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'email', 'unique:users,email'],
+        'password' => ['required', 'string', 'min:6', 'confirmed'], // requires password_confirmation
+    ]);
+
+    // Create user
+    $user = User::create([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'password' => Hash::make($validated['password']),
+        'role' => 'student', // default role
+    ]);
+
+    // Create token
+    $deviceName = $request->string('device_name')->toString() ?: $request->userAgent();
+    $token = $user->createToken($deviceName)->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'token_type' => 'Bearer',
+        'user' => $user,
+    ], 201);
+}
+
 }
 
 

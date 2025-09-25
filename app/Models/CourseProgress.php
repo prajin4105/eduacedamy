@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+ use App\Models\Certificate;
 
 class CourseProgress extends Model
 {
@@ -28,6 +29,23 @@ class CourseProgress extends Model
         'is_completed' => 'boolean',
         'video_progress' => 'array',
     ];
+
+
+public static function createForUserCourse($user, $course)
+{
+    return self::firstOrCreate(
+        [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ],
+        [
+            'total_videos' => $course->videos()->count(), // ✅ set total_videos
+            'progress_percentage' => 0,
+            'videos_completed' => 0,
+            'time_spent_seconds' => 0,
+        ]
+    );
+}
 
     public function user(): BelongsTo
     {
@@ -62,20 +80,25 @@ class CourseProgress extends Model
     public function markVideoCompleted(int $videoId): void
     {
         $videoProgress = $this->video_progress ?? [];
-        
+
         if (!in_array($videoId, $videoProgress)) {
             $videoProgress[] = $videoId;
             $this->video_progress = $videoProgress;
             $this->videos_completed = count($videoProgress);
             $this->progress_percentage = $this->calculateProgressPercentage();
             $this->last_watched_at = now();
-            
+
             // Mark course as completed if all videos are watched
             if ($this->videos_completed >= $this->total_videos) {
                 $this->is_completed = true;
                 $this->completed_at = now();
+
+                // Create certificate if it doesn't exist
+                if (!Certificate::hasCertificate($this->user, $this->course)) {
+                    Certificate::createForCompletedCourse($this->user, $this->course);
+                }
             }
-            
+
             $this->save();
         }
     }

@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <!-- Video List with Progress -->
+    <!-- Video List -->
     <div class="bg-white rounded-lg shadow">
       <div class="px-6 py-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Course Content</h3>
@@ -61,34 +61,45 @@
 
             <!-- Action Button -->
             <div class="flex items-center space-x-2">
-            <span
-  v-if="isVideoCompleted(video.id)"
-  class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100"
->
-  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fill-rule="evenodd"
-      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-      clip-rule="evenodd"
-    />
-  </svg>
-  Completed
-</span>
+              <!-- Watch Button - Fixed to use video instead of undefined course -->
+              <span
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors"
+                @click="watchVideo(video)"
+              >
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 3a1 1 0 000 2h1v11H4a1 1 0 100 2h12a1 1 0 100-2h-1V5h1a1 1 0 000-2H4zM6 5v11h8V5H6z"></path>
+                </svg>
+                Watch
+              </span>
 
-<span
-  v-else
-  class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100"
->
-  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fill-rule="evenodd"
-      d="M10 2a8 8 0 100 16 8 8 0 000-16zm.75 4a.75.75 0 00-1.5 0v5a.75.75 0 00.37.65l3.5 2a.75.75 0 00.76-1.28l-3.13-1.8V6z"
-      clip-rule="evenodd"
-    />
-  </svg>
-  Pending
-</span>
+              <span
+                v-if="isVideoCompleted(video.id)"
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100"
+              >
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Completed
+              </span>
 
+              <span
+                v-else
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 cursor-pointer hover:bg-yellow-200 transition-colors"
+                @click="markVideoCompleted(video.id)"
+              >
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 2a8 8 0 100 16 8 8 0 000-16zm.75 4a.75.75 0 00-1.5 0v5a.75.75 0 00.37.65l3.5 2a.75.75 0 00.76-1.28l-3.13-1.8V6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Pending
+              </span>
             </div>
           </div>
         </div>
@@ -114,8 +125,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import progressService from '../services/ProgressService';
+
+const router = useRouter();
+const route = useRoute();
 
 const props = defineProps({
   courseId: {
@@ -134,10 +149,16 @@ const progress = ref(null);
 const loading = ref(false);
 const error = ref(null);
 
+// Fixed watchVideo method - uses the video parameter and gets course slug from route
+const watchVideo = (video) => {
+  const courseSlug = route.params.slug;
+  router.push(`/course/${courseSlug}/video/${video.id}`);
+};
+
 const fetchProgress = async () => {
   try {
     loading.value = true;
-    const response = await axios.get(`courses/${props.courseId}/progress`);
+    const response = await axios.get(`/courses/${props.courseId}/progress`);
 
     if (response.data.success) {
       progress.value = response.data.data.progress;
@@ -152,21 +173,16 @@ const fetchProgress = async () => {
 
 const markVideoCompleted = async (videoId) => {
   try {
-    const response = await progressService.markVideoCompleted(props.courseId, videoId);
+    // Add your API call to mark video as completed
+    const response = await axios.post(`/courses/${props.courseId}/videos/${videoId}/complete`);
 
-    if (response.success) {
+    if (response.data.success) {
       // Update local progress
-      progress.value = response.data.progress;
-
-      // Emit event to parent component
-      emit('progress-updated', {
-        progress: progress.value,
-        isCompleted: response.data.is_course_completed
-      });
+      await fetchProgress();
+      emit('progress-updated');
     }
   } catch (err) {
-    console.error('Error marking video as completed:', err);
-    error.value = err.response?.data?.message || 'Error marking video as completed';
+    console.error('Error marking video completed:', err);
   }
 };
 
@@ -228,9 +244,7 @@ onMounted(() => {
 });
 
 // Cleanup on unmount
-onMounted(() => {
-  return () => {
-    stopTimeTracking();
-  };
+onUnmounted(() => {
+  stopTimeTracking();
 });
 </script>
