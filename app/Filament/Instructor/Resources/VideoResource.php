@@ -11,24 +11,26 @@ use Filament\Tables\Table;
 use Filament\Support\Icons\Heroicon;
 use BackedEnum;
 use Filament\Tables;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\ViewAction;
+use UnitEnum;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
+use Filament\Actions\Action;
+use Illuminate\Database\Eloquent\Builder;
 
 class VideoResource extends Resource
 {
     protected static ?string $model = Video::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedVideoCamera;
-    // protected static ?string $navigationGroup = 'Content';
+protected static UnitEnum|string|null $navigationGroup = 'Content';
     protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
@@ -103,7 +105,7 @@ class VideoResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->query(Video::with('course'))
+            ->query(static::getEloquentQuery())
             ->columns([
                 Tables\Columns\ImageColumn::make('thumbnail_url')
                     ->label('Thumbnail')
@@ -162,7 +164,10 @@ class VideoResource extends Resource
             ])
             ->actions([
                ViewAction::make(),
-               EditAction::make(),
+               Action::make('edit')
+                   ->label('Edit')
+                   ->icon('heroicon-m-pencil-square')
+                   ->url(fn (Video $record) => static::getUrl('edit', ['record' => $record])),
                DeleteAction::make(),
             ])
             ->bulkActions([
@@ -171,6 +176,17 @@ class VideoResource extends Resource
                 ]),
             ])
             ->defaultSort('sort_order', 'asc');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()
+            ->with('course')
+            ->whereHas('course', function ($q) {
+                $q->where('instructor_id', auth()->id());
+            });
+
+        return $query;
     }
 
     public static function getRelations(): array

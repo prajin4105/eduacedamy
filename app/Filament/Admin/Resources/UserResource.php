@@ -70,10 +70,20 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                //role
+                Tables\Columns\TextColumn::make('role')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'student' => 'primary',
+                        'instructor' => 'success',
+                        'admin' => 'danger',
+                    })
+                    ->sortable(),
             ]);
             // ->filters([])
             // ->actions([

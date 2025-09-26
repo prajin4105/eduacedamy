@@ -23,10 +23,9 @@ class CourseProgressController extends Controller
             $user = Auth::user();
             $course = Course::findOrFail($courseId);
 
-            // Check if user is enrolled
+            // Check if user is enrolled (allow active/paid/in-progress statuses)
             $enrollment = Enrollment::where('user_id', $user->id)
                 ->where('course_id', $courseId)
-                ->where('status', 'completed')
                 ->first();
 
             if (!$enrollment) {
@@ -47,10 +46,7 @@ $progress = CourseProgress::firstOrCreate(
     ]
 );
 
-// Ensure video_progress is a valid stringified JSON array
-if (is_array($progress->video_progress)) {
-    $progress->video_progress = json_encode($progress->video_progress);
-}
+// Ensure video_progress uses array cast; no manual json encoding needed
 
 // Update total videos count if course videos changed
 if ($progress->total_videos !== $course->getTotalVideosCount()) {

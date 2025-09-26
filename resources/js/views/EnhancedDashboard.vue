@@ -264,13 +264,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import progressService from '../services/ProgressService';
 
 const router = useRouter();
-const user = inject('user');
+// user injection not required; using token-based API
 
 const loading = ref(true);
 const error = ref(null);
@@ -309,6 +309,11 @@ const truncateText = (text, length = 100) => {
 const fetchDashboardProgress = async () => {
   try {
     loading.value = true;
+    // Ensure auth header is present
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
     const response = await axios.get('/dashboard/progress');
 
     if (response.data.success) {

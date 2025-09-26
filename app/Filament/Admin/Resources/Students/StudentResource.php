@@ -7,16 +7,17 @@ use App\Filament\Admin\Resources\Students\Pages\EditStudent;
 use App\Filament\Admin\Resources\Students\Pages\ListStudents;
 use App\Filament\Admin\Resources\Students\Schemas\StudentForm;
 use App\Filament\Admin\Resources\Students\Tables\StudentsTable;
-use App\Models\Student;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class StudentResource extends Resource
 {
-    protected static ?string $model = Student::class;
+    protected static ?string $model = User::class;
 
     protected static ?string $navigationLabel = 'Students';
 
@@ -34,6 +35,12 @@ class StudentResource extends Resource
     public static function table(Table $table): Table
     {
         return StudentsTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Only show users who are students
+        return parent::getEloquentQuery()->where('role', 'student');
     }
 
     public static function getRelations(): array

@@ -10,12 +10,11 @@ class FilamentServiceProvider extends BaseServiceProvider
     public function boot(): void
     {
         // Register a default panel
-        $this->registerPanels();
+        // Panels are provided via dedicated PanelProviders.
     }
 
     protected function registerPanels(): void
     {
-        Panel::make('admin')   // Unique panel ID
-            ->default();       // Mark as default
+        // No-op. Using PanelProviders (AdminPanelProvider, InstructorPanelProvider).
     }
 }

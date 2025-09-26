@@ -62,6 +62,18 @@ class CourseResource extends Resource
             ->required(),
     ])
     ->columns(1),
+    //instructor role==insturctor_id
+    Section::make('Instructor')
+    ->schema([
+        Select::make('instructor_id')
+            ->label('Select Instructor')
+            ->required()
+            ->preload()
+            ->relationship('instructor', 'name') // ✅ Magic: auto uses belongsToMany
+            ->searchable()
+            ->placeholder('Select an instructor'),
+    ])
+    ->columns(1),
 
                     RichEditor::make('description')
                         ->required()

@@ -182,12 +182,36 @@ const login = async () => {
     // Update auth store with user data and token
     authStore.setAuth(me.data, token);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const role = me.data.role;
       if (role === 'admin') {
-        window.location.href = '/admin';
+        try {
+          await axios.post('http://127.0.0.1:8000/login', {
+            email: form.value.email,
+            password: form.value.password,
+            remember: true,
+          }, {
+            withCredentials: true,
+            headers: { Accept: 'application/json' },
+          });
+          window.location.href = '/admin';
+        } catch (e) {
+          window.location.href = '/admin/login';
+        }
       } else if (role === 'instructor') {
-        window.location.href = '/instructor';
+        try {
+          await axios.post('http://127.0.0.1:8000/login', {
+            email: form.value.email,
+            password: form.value.password,
+            remember: true,
+          }, {
+            withCredentials: true,
+            headers: { Accept: 'application/json' },
+          });
+          window.location.href = '/instructor';
+        } catch (e) {
+          window.location.href = '/instructor/login';
+        }
       } else if (role === 'student') {
         router.replace('/dashboard');
       } else {

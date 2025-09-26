@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Page header -->
-
     <div class="bg-white shadow">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold text-gray-900">All Courses</h1>
@@ -170,7 +169,7 @@
               </div>
             </div>
 
-            <!-- Course cards -->
+            <!-- Course cards with images -->
             <div
               v-else
               class="bg-white shadow overflow-hidden sm:rounded-b-lg"
@@ -181,93 +180,184 @@
                   :key="course.id"
                   class="px-4 py-6 sm:px-6 hover:bg-gray-50 transition-colors duration-150"
                 >
-                  <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                      <h2 class="text-xl font-bold text-gray-900 mb-2 truncate">
-                        <router-link :to="`/courses/${course.slug}`" class="hover:text-indigo-600">
-                          {{ course.title }}
-                        </router-link>
-                      </h2>
-
-                      <!-- Fixed description rendering with HTML support -->
-                      <div
-                        class="text-gray-600 mb-3 line-clamp-3"
-                        v-html="course.description || course.excerpt || 'No description available'"
-                      ></div>
-
-                      <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                        <span v-if="course.level" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {{ course.level.charAt(0).toUpperCase() + course.level.slice(1) }}
-                        </span>
-
-                        <div v-if="course.categories && course.categories.length > 0" class="flex flex-wrap gap-1">
+                  <div class="flex flex-col lg:flex-row gap-4">
+                    <!-- Course Image -->
+                    <div class="lg:w-48 lg:flex-shrink-0">
+                      <div class="relative w-full lg:w-48 h-48 lg:h-32 course-image-container">
+                        <img
+                          :src="getCourseImage(course)"
+                          :alt="course.title"
+                          class="w-full h-full object-cover rounded-lg"
+                          @error="handleImageError"
+                        />
+                        <!-- Badge overlay for featured/popular courses -->
+                        <div
+                          v-if="course.is_featured || course.is_popular"
+                          class="absolute top-2 left-2"
+                        >
                           <span
-                            v-for="category in course.categories"
-                            :key="category.id"
-                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                            v-if="course.is_featured"
+                            class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full"
                           >
-                            {{ category.name }}
+                            ⭐ Featured
+                          </span>
+                          <span
+                            v-else-if="course.is_popular"
+                            class="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full"
+                          >
+                            🔥 Popular
                           </span>
                         </div>
 
-                        <span v-if="course.rating > 0" class="flex items-center">
-                          <svg class="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          {{ course.rating }}/5 ({{ course.reviews_count }})
-                        </span>
-
-                        <span v-if="course.enrollments_count > 0" class="flex items-center">
-                          <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                          </svg>
-                          {{ course.enrollments_count }} {{ course.enrollments_count === 1 ? 'student' : 'students' }}
-                        </span>
-
-                        <span v-if="course.lessons_count > 0" class="flex items-center">
-                          <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2h4a1 1 0 0 1 0 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 1 1 0-2h4zM9 3v1h6V3H9z" />
-                          </svg>
-                          {{ course.lessons_count }} {{ course.lessons_count === 1 ? 'lesson' : 'lessons' }}
-                        </span>
-
-                        <span v-if="course.duration" class="flex items-center">
-                          <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {{ course.duration }}
-                        </span>
-
-                        <span v-if="course.instructor" class="flex items-center">
-                          <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          {{ course.instructor.name }}
-                        </span>
+                        <!-- Price overlay -->
+                        <div class="absolute bottom-2 right-2">
+                          <div v-if="course.price" class="text-right">
+                            <span v-if="course.discounted_price" class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">
+                              ${{ course.discounted_price }}
+                            </span>
+                            <span v-else-if="parseFloat(course.price) > 0" class="bg-gray-900 text-white px-2 py-1 rounded text-sm font-bold">
+                              ${{ course.price }}
+                            </span>
+                            <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
+                          </div>
+                          <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div class="ml-4 flex flex-col items-end">
-                      <div v-if="course.price" class="text-right mb-2">
-                        <span v-if="course.discounted_price" class="text-lg font-bold text-green-600">
-                          ${{ course.discounted_price }}
-                        </span>
-                        <span v-if="course.discounted_price" class="text-sm text-gray-500 line-through ml-2">
-                          ${{ course.price }}
-                        </span>
-                        <span v-else-if="parseFloat(course.price) > 0" class="text-lg font-bold text-gray-900">
-                          ${{ course.price }}
-                        </span>
-                        <span v-else class="text-lg font-bold text-green-600">Free</span>
-                      </div>
-                      <span v-else class="text-lg font-bold text-green-600">Free</span>
+                    <!-- Course Content -->
+                    <div class="flex-1 flex flex-col justify-between">
+                      <div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">
+                          <router-link :to="`/courses/${course.slug}`" class="hover:text-indigo-600 line-clamp-2">
+                            {{ course.title }}
+                          </router-link>
+                        </h2>
 
-                      <router-link
-                        :to="`/courses/${course.slug}`"
-                        class="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        {{ course.is_enrolled ? 'Continue' : 'View Course' }}
-                      </router-link>
+                        <!-- Fixed description rendering with HTML support -->
+                        <div
+                          class="text-gray-600 mb-3 line-clamp-3"
+                          v-html="course.description || course.excerpt || 'No description available'"
+                        ></div>
+
+                        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-3">
+                          <span v-if="course.level" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {{ course.level.charAt(0).toUpperCase() + course.level.slice(1) }}
+                          </span>
+
+                          <div v-if="course.categories && course.categories.length > 0" class="flex flex-wrap gap-1">
+                            <span
+                              v-for="category in course.categories.slice(0, 2)"
+                              :key="category.id"
+                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                            >
+                              {{ category.name }}
+                            </span>
+                            <span
+                              v-if="course.categories.length > 2"
+                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"
+                            >
+                              +{{ course.categories.length - 2 }} more
+                            </span>
+                          </div>
+
+                          <span v-if="course.rating > 0" class="flex items-center">
+                            <div class="flex items-center">
+                              <svg
+                                v-for="star in 5"
+                                :key="star"
+                                class="w-4 h-4"
+                                :class="star <= Math.floor(course.rating) ? 'text-yellow-400' : 'text-gray-300'"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            </div>
+                            <span class="ml-1">{{ course.rating }}/5 ({{ course.reviews_count }})</span>
+                          </span>
+                        </div>
+
+                        <!-- Course stats -->
+                        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                          <span v-if="course.enrollments_count > 0" class="flex items-center">
+                            <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                            </svg>
+                            {{ course.enrollments_count }} {{ course.enrollments_count === 1 ? 'student' : 'students' }}
+                          </span>
+
+                          <span v-if="course.lessons_count > 0" class="flex items-center">
+                            <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2h4a1 1 0 0 1 0 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 1 1 0-2h4zM9 3v1h6V3H9z" />
+                            </svg>
+                            {{ course.lessons_count }} {{ course.lessons_count === 1 ? 'lesson' : 'lessons' }}
+                          </span>
+
+                          <span v-if="course.duration" class="flex items-center">
+                            <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ course.duration }}
+                          </span>
+
+                          <span v-if="course.instructor" class="flex items-center">
+                            <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {{ course.instructor.name }}
+                          </span>
+
+                          <span v-if="course.updated_at" class="flex items-center text-xs">
+                            <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Updated {{ formatDate(course.updated_at) }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Action buttons -->
+                      <div class="flex items-center justify-between mt-4">
+                        <div class="flex items-center space-x-2">
+                          <!-- Wishlist button -->
+                          <button
+                            @click="toggleWishlist(course)"
+                            :class="[
+                              'p-2 rounded-full transition-colors duration-200',
+                              course.is_wishlisted
+                                ? 'text-red-600 hover:text-red-700 bg-red-50'
+                                : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                            ]"
+                            :title="course.is_wishlisted ? 'Remove from wishlist' : 'Add to wishlist'"
+                          >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                            </svg>
+                          </button>
+
+                          <!-- Share button -->
+                          <button
+                            @click="shareCourse(course)"
+                            class="p-2 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                            title="Share course"
+                          >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <router-link
+                          :to="`/courses/${course.slug}`"
+                          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                        >
+                          {{ course.is_enrolled ? 'Continue Learning' : 'View Course' }}
+                          <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </router-link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -423,6 +513,101 @@ const visiblePages = computed(() => {
   return pages;
 });
 
+// Image handling functions
+const getCourseImage = (course) => {
+  // Priority order for image sources:
+  // 1. course.image (full URL)
+  // 2. course.thumbnail
+  // 3. course.featured_image
+  // 4. course.cover_image
+  // 5. fallback placeholder
+
+  if (course.image) {
+    // If it's already a full URL, return as is
+    if (course.image.startsWith('http')) {
+      return course.image;
+    }
+    // If it's a relative path, prepend your API base URL
+    return `${axios.defaults.baseURL || ''}/storage/${course.image}`;
+  }
+
+  if (course.thumbnail) {
+    return course.thumbnail.startsWith('http')
+      ? course.thumbnail
+      : `${axios.defaults.baseURL || ''}/storage/${course.thumbnail}`;
+  }
+
+  if (course.featured_image) {
+    return course.featured_image.startsWith('http')
+      ? course.featured_image
+      : `${axios.defaults.baseURL || ''}/storage/${course.featured_image}`;
+  }
+
+  if (course.cover_image) {
+    return course.cover_image.startsWith('http')
+      ? course.cover_image
+      : `${axios.defaults.baseURL || ''}/storage/${course.cover_image}`;
+  }
+
+  // Fallback to a placeholder image
+  return `https://via.placeholder.com/400x300/6366f1/ffffff?text=${encodeURIComponent(course.title?.substring(0, 20) || 'Course')}`;
+};
+
+const handleImageError = (event) => {
+  // Set a fallback image when the original image fails to load
+  event.target.src = `https://via.placeholder.com/400x300/6366f1/ffffff?text=${encodeURIComponent('Course Image')}`;
+};
+
+// Utility functions
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
+  return `${Math.ceil(diffDays / 365)} years ago`;
+};
+
+    const toggleWishlist = async (course) => {
+    try {
+        if (course.is_wishlisted) {
+        await axios.delete(`/wishlist/${course.id}`);
+        course.is_wishlisted = false;
+        } else {
+        await axios.post(`/wishlist`, { course_id: course.id });
+        course.is_wishlisted = true;
+        }
+    } catch (error) {
+        console.error('Error toggling wishlist:', error);
+        // You might want to show a toast notification here
+    }
+    };
+
+const shareCourse = async (course) => {
+  const shareData = {
+    title: course.title,
+    text: course.description || course.excerpt || 'Check out this course!',
+    url: `${window.location.origin}/courses/${course.slug}`
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareData.url);
+      // You might want to show a toast notification here
+      console.log('Course URL copied to clipboard!');
+    }
+  } catch (error) {
+    console.error('Error sharing course:', error);
+  }
+};
+
 // 🔄 Fetch categories
 const fetchCategories = async () => {
   try {
@@ -556,10 +741,182 @@ onMounted(async () => {
 
 <style scoped>
 /* Additional styles for better description display */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Smooth transitions for interactive elements */
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Hover effects for course cards */
+.hover\:bg-gray-50:hover {
+  background-color: rgb(249 250 251);
+}
+
+/* Image loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Responsive image container */
+.course-image-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.course-image-container img {
+  transition: transform 0.3s ease;
+}
+
+.course-image-container:hover img {
+  transform: scale(1.05);
+}
+
+/* Badge animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.badge-enter {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Loading spinner enhancement */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Enhanced button styles */
+button:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  box-shadow: 0 0 0 2px #4f46e5;
+}
+
+/* Improved card hover effects */
+.course-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Price badge styling */
+.price-badge {
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .course-image-container {
+    height: 200px;
+  }
+
+  .line-clamp-2 {
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-3 {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .flex-wrap {
+    gap: 0.5rem;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .course-image-container img {
+    filter: brightness(0.9);
+  }
+
+  .bg-white {
+    background-color: #1f2937;
+    color: white;
+  }
+
+  .text-gray-900 {
+    color: #f9fafb;
+  }
+
+  .text-gray-600 {
+    color: #d1d5db;
+  }
+
+  .text-gray-500 {
+    color: #9ca3af;
+  }
 }
 </style>

@@ -38,7 +38,7 @@ class InstructorPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Instructor/Widgets'), for: 'App\\Filament\\Instructor\\Widgets')
             ->widgets([
                 \Filament\Widgets\AccountWidget::class,
-                \Filament\Widgets\FilamentInfoWidget::class,
+                \App\Filament\Instructor\Widgets\InstructorStats::class,
             ])
             ->middleware([
                 EncryptCookies::class,

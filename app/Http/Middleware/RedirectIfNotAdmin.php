@@ -4,21 +4,26 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class RedirectIfNotAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
+        $user = $request->user();
+
+        if (! $user) {
+            return redirect('/admin/login');
         }
 
-        if (Auth::user()->role !== 'admin') {
-            return redirect('/')->with('error', 'You do not have permission to access the admin panel.');
+        if ($user->role !== 'admin') {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+            return redirect('/');
         }
 
         return $next($request);
     }
 }
+
