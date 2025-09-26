@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CourseProgressController;
+use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Api\CertificateController;
 
 /*
@@ -81,4 +82,11 @@ Route::match(['get', 'post'], '/create-order', [PaymentController::class, 'creat
 // Protected enrollment check route
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/enrollments/check', [EnrollmentController::class, 'checkEnrollment']);
+});
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/wishlist', [WishlistController::class, 'index']);
+    Route::post('/wishlist', [WishlistController::class, 'store']);
+    Route::delete('/wishlist/{course}', [WishlistController::class, 'destroy']);
 });

@@ -110,4 +110,10 @@ public function certificates()
                     ->with('course')
                     ->get();
     }
+    public function wishlist()
+{
+    return $this->belongsToMany(Course::class, 'wishlists')->withTimestamps();
+}
+
+
 }

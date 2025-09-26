@@ -1,276 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Certificate of Completion</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Achievement</title>
     <style>
-        @page {
-            margin: 0;
-            size: A4 landscape;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
-            background: #f5f5f5;
-            width: 297mm;
-            height: 210mm;
-            padding: 20px;
+            font-family: DejaVu Sans, sans-serif;
+            background-color: #f4f4f4;
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-
-        .certificate {
-            background: linear-gradient(135deg, #d4a5a5 0%, #c49999 50%, #b88a8a 100%);
-            width: 100%;
-            height: 100%;
-            border-radius: 12px;
-            position: relative;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            overflow: hidden;
-        }
-
-        /* Decorative border */
-        .certificate::before {
-            content: '';
-            position: absolute;
-            top: 25px;
-            left: 25px;
-            right: 25px;
-            bottom: 25px;
-            border: 3px solid #4a4a4a;
-            border-radius: 8px;
-            pointer-events: none;
-        }
-
-        /* Header section */
-        .header {
-            background-color: #4a4a4a;
-            color: white;
-            text-align: center;
-            padding: 20px 40px;
-            margin: 20px auto 60px;
-            border-radius: 0;
-            max-width: 500px;
-            position: relative;
-            z-index: 2;
-            letter-spacing: 3px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: bold;
-            text-transform: uppercase;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        /* Certificate text */
-        .certificate-intro {
-            text-align: center;
-            color: #555;
-            font-size: 18px;
-            margin-bottom: 40px;
+        .certificate-container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .certificate-border {
+            border: 5px solid #a87d32; /* Gold border */
+            padding: 30px;
             position: relative;
-            z-index: 2;
-        }
-
-        /* Student name section */
-        .student-section {
             text-align: center;
-            margin-bottom: 50px;
-            position: relative;
-            z-index: 2;
+            box-sizing: border-box;
         }
 
-        .student-name {
-            font-size: 48px;
-            font-weight: bold;
-            color: #f5f5f5;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin: 20px 0;
-            line-height: 1.2;
+        .certificate-content {
+            padding: 20px;
+            border: 2px dashed #ccc;
+            box-sizing: border-box;
         }
 
-        /* Course description */
-        .course-description {
-            text-align: center;
-            color: #555;
-            font-size: 16px;
-            line-height: 1.6;
+        .title {
+            font-size: 3em;
+            color: #a87d32;
             margin-bottom: 20px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            position: relative;
-            z-index: 2;
         }
 
-        .course-title {
-            font-weight: bold;
-            color: #4a4a4a;
+        .award-text {
+            font-size: 1.2em;
+            margin-bottom: 10px;
         }
 
-        .completion-date {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 60px;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Signatures section */
-        .signatures {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            margin-top: auto;
-            padding: 0 60px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .signature {
-            text-align: center;
-            flex: 1;
-            margin: 0 30px;
-        }
-
-        .signature-line {
-            width: 180px;
-            height: 2px;
-            background-color: #4a4a4a;
-            margin: 0 auto 15px;
-            position: relative;
-        }
-
-        .signature-image {
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 40px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'%3E%3Cpath d='M10,25 Q20,15 30,20 T50,18 Q60,12 70,20 T90,22 Q100,15 110,25' stroke='%23333' stroke-width='2' fill='none'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-size: contain;
-            background-position: center;
-        }
-
-        .signature-image.signature2 {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'%3E%3Cpath d='M15,20 Q25,10 35,25 Q45,30 55,15 Q65,8 75,22 Q85,28 95,18 Q105,12 115,20' stroke='%23333' stroke-width='2' fill='none'/%3E%3C/svg%3E");
-        }
-
-        .signature-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #4a4a4a;
+        .recipient-name {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 20px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+        }
+
+        .description {
+            font-size: 1.1em;
             margin-bottom: 5px;
         }
 
-        .signature-title {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .course-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 30px;
         }
 
-        /* Certificate number */
-        .cert-number {
-            position: absolute;
-            bottom: 15px;
-            right: 25px;
-            font-size: 10px;
-            color: #888;
-            font-family: 'Courier New', monospace;
-            z-index: 2;
+        .date {
+            font-size: 1em;
+            color: #777;
+            margin-bottom: 40px;
         }
 
-        /* Background decorative elements */
-        .bg-decoration {
-            position: absolute;
-            opacity: 0.1;
-            color: #fff;
-            font-size: 200px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            z-index: 1;
-            pointer-events: none;
+        .signatures {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
         }
 
-        /* Responsive adjustments */
-        @media print {
-            body {
-                background: none;
-                padding: 0;
-            }
+        .signature-block {
+            flex-basis: 45%;
+            text-align: center;
+        }
 
-            .certificate {
-                box-shadow: none;
-            }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 80%;
+            margin: 0 auto 5px auto;
+        }
+
+        .signer-title {
+            font-size: 0.9em;
+            color: #555;
         }
     </style>
 </head>
 <body>
-    <div class="certificate">
-        <!-- Background decoration -->
-        <div class="bg-decoration">★</div>
+    <div class="certificate-container">
+        <div class="certificate-border">
+            <div class="certificate-content">
+                <h1 class="title">Certificate of Achievement</h1>
+                <p class="award-text">This certificate is proudly presented to</p>
 
-        <!-- Header -->
-        <div class="header">
-            <h1>Certificate of Completion</h1>
-        </div>
+                <!-- Student name -->
+                <h2 class="recipient-name">{{ $student_name }}</h2>
 
-        <!-- Certificate intro text -->
-        <div class="certificate-intro">
-            This certificate goes to
-        </div>
+                <p class="description">For outstanding achievement in completing the</p>
 
-        <!-- Student name section -->
-        <div class="student-section">
-            <div class="student-name">{{ $student_name }}</div>
-        </div>
+                <!-- Course name -->
+                <p class="course-name">{{ $course_title }}</p>
 
-        <!-- Course description -->
-        <div class="course-description">
-            for successfully completing the <span class="course-title">{{ $course_title }}</span><br>
-            conducted by EduAcademy Training Centre with excellence and dedication.
-        </div>
+                <!-- Date -->
+                <p class="date">Awarded on: {{ $issue_date }}</p>
 
-        <div class="completion-date">on {{ $issue_date }}</div>
-
-        <!-- Signatures -->
-        <div class="signatures">
-            <div class="signature">
-                <div class="signature-line">
-                    <div class="signature-image"></div>
+                <!-- Signatures -->
+                <div class="signatures">
+                    <div class="signature-block">
+                        <p class="signature-line"></p>
+                        <p class="signer-title">Head Instructor</p>
+                    </div>
+                    <div class="signature-block">
+                        <p class="signature-line"></p>
+                        <p class="signer-title">Director of Education</p>
+                    </div>
                 </div>
-                <div class="signature-name">{{ $instructor_name }}</div>
-                <div class="signature-title">Head Instructor</div>
-            </div>
-            <div class="signature">
-                <div class="signature-line">
-                    <div class="signature-image signature2"></div>
-                </div>
-                <div class="signature-name">Director of Education</div>
-                <div class="signature-title">General Manager</div>
             </div>
         </div>
-
-        <!-- Certificate number -->
-        <div class="cert-number">Certificate No: {{ $certificate_number }}</div>
     </div>
 </body>
 </html>

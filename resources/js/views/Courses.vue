@@ -572,20 +572,20 @@ const formatDate = (dateString) => {
   return `${Math.ceil(diffDays / 365)} years ago`;
 };
 
-    const toggleWishlist = async (course) => {
-    try {
-        if (course.is_wishlisted) {
-        await axios.delete(`/wishlist/${course.id}`);
-        course.is_wishlisted = false;
-        } else {
-        await axios.post(`/wishlist`, { course_id: course.id });
-        course.is_wishlisted = true;
-        }
-    } catch (error) {
-        console.error('Error toggling wishlist:', error);
-        // You might want to show a toast notification here
+const toggleWishlist = async (course) => {
+  try {
+    if (course.is_wishlisted) {
+      await axios.delete(`/wishlist/${course.id}`);
+      course.is_wishlisted = false;
+    } else {
+      await axios.post(`/wishlist`, { course_id: course.id });
+      course.is_wishlisted = true;
     }
-    };
+  } catch (error) {
+    console.error('Error toggling wishlist:', error);
+    // You might want to show a toast notification here
+  }
+};
 
 const shareCourse = async (course) => {
   const shareData = {

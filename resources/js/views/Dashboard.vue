@@ -186,7 +186,6 @@ const getStatusClass = (status) => {
 };
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
-
 const fetchDashboardData = async () => {
   try {
     loading.value = true;
@@ -194,17 +193,34 @@ const fetchDashboardData = async () => {
       axios.get('/enrollments'),
       axios.get('/courses')
     ]);
+
     enrolledCourses.value = enrollmentsRes.data;
-    availableCourses.value = coursesRes.data.slice(0, 8);
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    message.value = 'Error loading dashboard data';
-    messageType.value = 'error';
-    setTimeout(() => message.value = '', 5000);
+
+    // Fix for API returning object instead of array
+    availableCourses.value = Array.isArray(coursesRes.data)
+      ? coursesRes.data.slice(0, 8)
+      : coursesRes.data.data?.slice(0, 8) || [];
+
+    // Compute statistics
+    statistics.value.total_courses = enrolledCourses.value.length;
+    statistics.value.completed_courses = completedCourses.value.length;
+    statistics.value.in_progress_courses = inProgressCourses.value.length;
+    statistics.value.completion_rate = enrolledCourses.value.length
+      ? Math.round((completedCourses.value.length / enrolledCourses.value.length) * 100)
+      : 0;
+    statistics.value.total_time_spent_seconds = enrolledCourses.value.reduce(
+      (sum, c) => sum + (c.progress?.time_spent_seconds || 0),
+      0
+    );
+
+  } catch (err) {
+    console.error('Error fetching dashboard data:', err);
+    error.value = 'Failed to load dashboard';
   } finally {
     loading.value = false;
   }
 };
+
 
 // Load Razorpay SDK dynamically
 const loadRazorpay = () => new Promise((resolve, reject) => {

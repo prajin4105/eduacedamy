@@ -39,6 +39,12 @@ class Course extends Model
     {
         return $this->belongsTo(User::class, 'instructor_id');
     }
+public function wishlistedBy()
+{
+    return $this->belongsToMany(User::class, 'wishlists')->withTimestamps();
+}
+
+
 
     public function videos(): HasMany
     {

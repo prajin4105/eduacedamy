@@ -61,8 +61,10 @@ public function index(Request $request)
                 'course' => $certificate->course ? [
                     'id' => $certificate->course?->id,
                     'title' => $certificate->course?->title,
-                    'image' => $certificate->course?->image_url ?? $certificate->course?->image ?? null,
-                    'instructor' => [
+                     'image' => $certificate->course?->image
+                ? asset('storage/' . $certificate->course->image)
+                : null,
+                 'instructor' => [
                         'name' => $certificate->course->instructor?->name ?? 'Unknown Instructor'
                     ]
                 ] : null
