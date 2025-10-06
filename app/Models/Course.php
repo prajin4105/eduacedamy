@@ -34,6 +34,16 @@ class Course extends Model
         'published_at' => 'datetime',
         'price' => 'decimal:2',
     ];
+    protected $appends = ['image_url'];
+
+     public function getImageUrlAttribute()
+    {
+        if ($this->image) {
+            return url('storage/' . $this->image); // e.g., http://127.0.0.1:8000/storage/courses/10.png
+        }
+        return null;
+    }
+
 
     public function instructor(): BelongsTo
     {

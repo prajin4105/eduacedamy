@@ -257,41 +257,44 @@ return response()->json([
                 return $enrollment->progress ? $enrollment->progress->time_spent_seconds : 0;
             });
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'statistics' => [
-                        'total_courses' => $totalCourses,
-                        'completed_courses' => $completedCount,
-                        'in_progress_courses' => $inProgressCount,
-                        'not_started_courses' => $notStartedCount,
-                        'total_time_spent_seconds' => $totalTimeSpent,
-                        'completion_rate' => $totalCourses > 0 ? round(($completedCount / $totalCourses) * 100, 2) : 0,
-                    ],
-                    'completed_courses' => $completedCourses->map(function ($enrollment) {
-                        return [
-                            'enrollment' => $enrollment,
-                            'course' => $enrollment->course,
-                            'progress' => $enrollment->progress,
-                            'completed_at' => $enrollment->progress ? $enrollment->progress->completed_at : null,
-                        ];
-                    }),
-                    'in_progress_courses' => $inProgressCourses->map(function ($enrollment) {
-                        return [
-                            'enrollment' => $enrollment,
-                            'course' => $enrollment->course,
-                            'progress' => $enrollment->progress,
-                        ];
-                    }),
-                    'not_started_courses' => $notStartedCourses->map(function ($enrollment) {
-                        return [
-                            'enrollment' => $enrollment,
-                            'course' => $enrollment->course,
-                            'progress' => $enrollment->progress,
-                        ];
-                    }),
-                ]
-            ]);
+        return response()->json([
+    'success' => true,
+    'data' => [
+        'statistics' => [
+            'total_courses' => $totalCourses,
+            'completed_courses' => $completedCount,
+            'in_progress_courses' => $inProgressCount,
+            'not_started_courses' => $notStartedCount,
+            'total_time_spent_seconds' => $totalTimeSpent,
+            'completion_rate' => $totalCourses > 0 ? round(($completedCount / $totalCourses) * 100, 2) : 0,
+        ],
+        'completed_courses' => $completedCourses->map(function ($enrollment) {
+            return [
+                'enrollment'   => $enrollment,
+                'course'       => $enrollment->course,
+                'progress'     => $enrollment->progress,
+                'completed_at' => $enrollment->progress ? $enrollment->progress->completed_at : null,
+            ];
+        })->values()->toArray(),
+
+        'in_progress_courses' => $inProgressCourses->map(function ($enrollment) {
+            return [
+                'enrollment' => $enrollment,
+                'course'     => $enrollment->course,
+                'progress'   => $enrollment->progress,
+            ];
+        })->values()->toArray(),
+
+        'not_started_courses' => $notStartedCourses->map(function ($enrollment) {
+            return [
+                'enrollment' => $enrollment,
+                'course'     => $enrollment->course,
+                'progress'   => $enrollment->progress,
+            ];
+        })->values()->toArray(),
+    ]
+]);
+
 
         } catch (\Exception $e) {
             return response()->json([

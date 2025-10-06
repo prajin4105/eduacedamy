@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Spatie\Browsershot\Browsershot;
 
+
 class CertificateController extends Controller
 {
     /**

@@ -60,15 +60,15 @@
 
         <div v-else-if="enrolledCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div v-for="enrollment in enrolledCourses" :key="enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <img :src="enrollment.course?.image || '/placeholder/300/200'" :alt="enrollment.course?.title || 'Course'" class="w-full h-48 object-cover" />
+            <img :src="enrollment.course?.image_url || '/placeholder/300/200'" :alt="enrollment.course?.title || 'Course'" class="w-full h-48 object-cover" />
             <div class="p-6">
               <div class="flex items-center justify-between mb-2">
                 <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-sm font-medium">
                   {{ enrollment.course?.level || 'All Levels' }}
                 </span>
-                <span :class="getStatusClass(enrollment.status)" class="px-2 py-1 rounded-full text-sm font-medium">
-                  {{ formatStatus(enrollment.status) }}
-                </span>
+                    <!-- <span :class="getStatusClass(enrollment.status)" class="px-2 py-1 rounded-full text-sm font-medium">
+                    {{ formatStatus(enrollment.status) }}
+                    </span> -->
               </div>
 
               <h3 class="text-xl font-semibold mb-2">{{ enrollment.course?.title || 'Untitled Course' }}</h3>
@@ -86,14 +86,34 @@
                 </span>
               </div>
 
+              <!-- Fixed Progress Bar Section -->
               <div class="mb-4">
-                <div class="flex justify-between text-sm text-gray-600 mb-1">
-                  <span>Progress</span>
-                  <span>{{ getProgressPercentage(enrollment) }}%</span>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-medium text-gray-700">Course Progress</span>
+                  <span class="text-sm font-medium text-gray-900">{{ getProgressPercentage(enrollment) }}%</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-indigo-600 h-2 rounded-full" :style="`width: ${getProgressPercentage(enrollment)}%`"></div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    class="h-3 rounded-full transition-all duration-500"
+                    :class="{
+                      'bg-green-500': enrollment.status === 'completed',
+                      'bg-indigo-600': enrollment.status === 'in_progress' || enrollment.status === 'active',
+                      'bg-yellow-500': enrollment.status === 'pending'
+                    }"
+                    :style="{ width: getProgressPercentage(enrollment) + '%' }"
+                  ></div>
                 </div>
+                <div class="mt-2 flex justify-between text-sm text-gray-600">
+                  <span v-if="enrollment.course?.duration_in_minutes">
+                    Duration: {{ Math.floor(enrollment.course.duration_in_minutes / 60) }}h {{ enrollment.course.duration_in_minutes % 60 }}m
+                  </span>
+                  <span v-if="enrollment.last_accessed_at">
+                    Last accessed: {{ formatDate(enrollment.last_accessed_at) }}
+                  </span>
+                </div>
+
+                <!-- Completion badge -->
+
               </div>
 
               <div class="flex gap-2">
@@ -102,7 +122,7 @@
                   :to="`/course/${enrollment.course.slug}`"
                   class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-center"
                 >
-                  {{ enrollment.status === 'completed' ? 'Review Course' : 'Continue Learning' }}
+                  {{ enrollment.status === 'completed' ? 'Go To course' : 'Continue Learning' }}
                 </router-link>
                 <button
                   v-else
@@ -127,10 +147,10 @@
       </div>
 
       <!-- Recommended Courses -->
-      <div v-if="!loading">
+      <!-- <div v-if="!loading && availableCourses.length > 0">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Recommended Courses</h2>
 
-        <div v-if="availableCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div v-for="course in availableCourses" :key="course.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
             <img :src="course.image || '/placeholder/300/200'" :alt="course.title" class="w-full h-40 object-cover" />
             <div class="p-4">
@@ -159,11 +179,7 @@
             </div>
           </div>
         </div>
-
-        <div v-else class="text-center py-8">
-          <p class="text-gray-500">No recommended courses available at the moment.</p>
-        </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- Messages -->
@@ -203,31 +219,28 @@ const statistics = ref({
   total_time_spent_seconds: 0
 });
 
-// Helper functions
+// Simplified Progress Percentage Function (perfect for your API structure)
 const getProgressPercentage = (enrollment) => {
   if (!enrollment) return 0;
 
-  // Check multiple possible progress fields
-  if (enrollment.progress_percentage !== undefined) {
+  // Your API directly provides progress_percentage on enrollment object
+  if (enrollment.progress_percentage !== undefined && enrollment.progress_percentage !== null) {
     return Math.round(enrollment.progress_percentage);
   }
 
-  if (enrollment.progress !== undefined) {
-    return Math.round(enrollment.progress);
+  // Fallback: Progress from nested progress object
+  if (enrollment.progress?.progress_percentage !== undefined && enrollment.progress.progress_percentage !== null) {
+    return Math.round(enrollment.progress.progress_percentage);
   }
 
-  if (enrollment.completion_percentage !== undefined) {
-    return Math.round(enrollment.completion_percentage);
-  }
-
-  // If status is completed, return 100%
-  if (enrollment.status === 'completed') {
-    return 100;
-  }
+  // Status-based fallback for completed courses
+  if (enrollment.status === 'completed') return 100;
+  if (enrollment.status === 'in_progress' || enrollment.status === 'active') return 25;
 
   return 0;
 };
 
+// Helper functions
 const formatStatus = (status) => {
   if (!status) return 'Unknown';
 
@@ -281,6 +294,18 @@ const formatDate = (dateString) => {
   }
 };
 
+const formatTimeSpent = (timeInSeconds) => {
+  if (!timeInSeconds) return '';
+
+  const hours = Math.floor(timeInSeconds / 3600);
+  const minutes = Math.floor((timeInSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+};
+
 const clearMessage = () => {
   message.value = '';
 };
@@ -298,45 +323,82 @@ const inProgressCount = computed(() => {
   ).length;
 });
 
-// Fetch Dashboard Data
+// Updated Fetch Dashboard Data - Fixed for your API structure
 const fetchDashboardData = async () => {
   try {
     loading.value = true;
     console.log('Fetching dashboard data...');
 
-    // Fetch data with better error handling
-    const requests = [
+    // Fetch data using your actual API endpoints
+    const [userRes, dashboardRes, coursesRes] = await Promise.all([
       axios.get('/me').catch(err => {
         console.warn('User fetch failed:', err);
         return { data: { name: 'Student' } };
       }),
-      axios.get('/enrollments').catch(err => {
-        console.warn('Enrollments fetch failed:', err);
-        return { data: [] };
+      // Use your dashboard progress endpoint
+      axios.get('/dashboard/progress').catch(err => {
+        console.warn('Dashboard progress fetch failed:', err);
+        return { data: { data: { completed_courses: [], in_progress_courses: [], not_started_courses: [], statistics: {} } } };
       }),
-      axios.get('/courses').catch(err => {
+      axios.get('/courses', {
+        params: { limit: 8 }
+      }).catch(err => {
         console.warn('Courses fetch failed:', err);
         return { data: [] };
       })
-    ];
-
-    const [userRes, enrollmentsRes, coursesRes] = await Promise.all(requests);
+    ]);
 
     // Set user data
     user.value = userRes.data;
 
-    // Process enrollments data
-    let enrollments = enrollmentsRes.data;
-    if (Array.isArray(enrollments)) {
-      enrolledCourses.value = enrollments;
-    } else if (enrollments && enrollments.data && Array.isArray(enrollments.data)) {
-      enrolledCourses.value = enrollments.data;
-    } else {
-      console.warn('Unexpected enrollments format:', enrollments);
-      enrolledCourses.value = [];
-    }
+    // Process dashboard data - your API structure
+    const dashboardData = dashboardRes.data.data;
 
-    // Process courses data
+    // Combine all enrolled courses from different categories
+    const allEnrolledCourses = [
+      ...dashboardData.completed_courses || [],
+      ...dashboardData.in_progress_courses || [],
+      ...dashboardData.not_started_courses || []
+    ];
+
+    // Process enrolled courses - map to expected structure
+    enrolledCourses.value = allEnrolledCourses.map(item => {
+      // Your API structure has enrollment nested inside
+      const enrollment = item.enrollment;
+
+      return {
+        id: enrollment.id,
+        user_id: enrollment.user_id,
+        course_id: enrollment.course_id,
+        amount_paid: enrollment.amount_paid,
+        status: enrollment.status,
+        enrolled_at: enrollment.enrolled_at,
+        created_at: enrollment.created_at,
+        updated_at: enrollment.updated_at,
+        progress_percentage: enrollment.progress_percentage, // This is directly available!
+        last_accessed_at: enrollment.last_accessed_at,
+        payment_id: enrollment.payment_id,
+        order_id: enrollment.order_id,
+        signature: enrollment.signature,
+        course: enrollment.course || item.course, // Use either nested course
+        progress: {
+          progress_percentage: enrollment.progress_percentage,
+          is_completed: enrollment.status === 'completed'
+        },
+        completed_at: item.completed_at
+      };
+    });
+
+    // Set statistics from API
+    statistics.value = {
+      total_courses: dashboardData.statistics?.total_courses || 0,
+      completed_courses: dashboardData.statistics?.completed_courses || 0,
+      in_progress_courses: dashboardData.statistics?.in_progress_courses || 0,
+      completion_rate: dashboardData.statistics?.completion_rate || 0,
+      total_time_spent_seconds: dashboardData.statistics?.total_time_spent_seconds || 0
+    };
+
+    // Process available courses for recommendations
     let courses = coursesRes.data;
     if (Array.isArray(courses)) {
       availableCourses.value = courses.slice(0, 8);
@@ -347,39 +409,27 @@ const fetchDashboardData = async () => {
       availableCourses.value = [];
     }
 
-    // Update statistics
-    updateStatistics();
-
     console.log('Dashboard data loaded successfully');
+    console.log('Enrolled courses with progress:', enrolledCourses.value);
+    console.log('Statistics:', statistics.value);
 
   } catch (err) {
     console.error('Dashboard fetch error:', err);
-    message.value = err.response?.data?.message || 'Failed to load dashboard data';
-    messageType.value = 'error';
+    showMessage(err.response?.data?.message || 'Failed to load dashboard data', 'error');
 
     // Set default values
-    user.value = { name: 'Student' };
-    enrolledCourses.value = [];
-    availableCourses.value = [];
+    user.value = user.value || { name: 'Student' };
+    enrolledCourses.value = enrolledCourses.value || [];
+    availableCourses.value = availableCourses.value || [];
   } finally {
     loading.value = false;
   }
 };
 
 const updateStatistics = () => {
-  const totalCourses = enrolledCourses.value.length;
-  const completed = completedCount.value;
-  const inProgress = inProgressCount.value;
-
-  statistics.value = {
-    total_courses: totalCourses,
-    completed_courses: completed,
-    in_progress_courses: inProgress,
-    completion_rate: totalCourses > 0 ? Math.round((completed / totalCourses) * 100) : 0,
-    total_time_spent_seconds: enrolledCourses.value.reduce((sum, enrollment) => {
-      return sum + (enrollment.time_spent_seconds || 0);
-    }, 0)
-  };
+  // Statistics are now directly provided by your API
+  // No need to recalculate as they come from /dashboard/progress endpoint
+  console.log('Statistics updated from API:', statistics.value);
 };
 
 // Razorpay Integration
@@ -406,8 +456,7 @@ const buyCourse = async (course) => {
     });
 
     if (checkRes.data.already_enrolled) {
-      message.value = 'You are already enrolled in this course.';
-      messageType.value = 'error';
+      showMessage('You are already enrolled in this course.', 'error');
       return;
     }
 
@@ -437,16 +486,14 @@ const buyCourse = async (course) => {
             signature: response.razorpay_signature,
           });
 
-          message.value = enrollRes.data.message || 'Successfully enrolled in course!';
-          messageType.value = "success";
+          showMessage(enrollRes.data.message || 'Successfully enrolled in course!', 'success');
 
           // Refresh dashboard data
           await fetchDashboardData();
 
         } catch (err) {
           console.error('Enrollment error:', err);
-          message.value = err.response?.data?.message || "Error enrolling in course";
-          messageType.value = "error";
+          showMessage(err.response?.data?.message || "Error enrolling in course", 'error');
         }
       },
       prefill: {
@@ -467,14 +514,13 @@ const buyCourse = async (course) => {
 
   } catch (error) {
     console.error('Purchase error:', error);
-    message.value = error.response?.data?.message || error.message || "Error initiating payment";
-    messageType.value = "error";
+    showMessage(error.response?.data?.message || error.message || "Error initiating payment", 'error');
   } finally {
     purchasing.value = false;
   }
 };
 
-// Auto-clear messages after 5 seconds
+// Message handling
 let messageTimeout;
 const showMessage = (msg, type = 'success') => {
   message.value = msg;
@@ -485,6 +531,29 @@ const showMessage = (msg, type = 'success') => {
     message.value = '';
   }, 5000);
 };
+    
+// Debug function
+const debugProgressData = () => {
+  console.log('=== PROGRESS DEBUG ===');
+  enrolledCourses.value.forEach((enrollment, index) => {
+    console.log(`Enrollment ${index + 1}:`, {
+      id: enrollment.id,
+      course_title: enrollment.course?.title,
+      status: enrollment.status,
+      progress_object: enrollment.progress,
+      progress_percentage: enrollment.progress_percentage,
+      completed_lessons: enrollment.completed_lessons,
+      total_lessons: enrollment.total_lessons,
+      calculated_progress: getProgressPercentage(enrollment)
+    });
+  });
+  console.log('=== END DEBUG ===');
+};
 
 onMounted(fetchDashboardData);
+
+// Expose debug function to global scope for testing
+if (process.env.NODE_ENV === 'development') {
+  window.debugProgressData = debugProgressData;
+}
 </script>
