@@ -8,19 +8,19 @@
     </h3>
 
     <!-- Add Review Form (only for enrolled students who haven't reviewed) -->
-    <div v-if="canAddReview" class="mb-8 p-4 bg-white rounded-lg shadow">
+    <!-- <div v-if="canAddReview" class="mb-8 p-4 bg-white rounded-lg shadow">
       <h4 class="font-medium mb-3">Write a Review</h4>
       <form @submit.prevent="submitReview">
         <div class="mb-3">
           <div class="flex items-center mb-2">
             <span class="mr-2 text-sm text-gray-600">Rating:</span>
             <div class="rating">
-              <input 
-                v-for="i in 5" 
-                :key="i" 
-                type="radio" 
-                :name="'rating-' + courseId" 
-                class="mask mask-star-2 bg-orange-400" 
+              <input
+                v-for="i in 5"
+                :key="i"
+                type="radio"
+                :name="'rating-' + courseId"
+                class="mask mask-star-2 bg-orange-400"
                 :class="{ 'opacity-30': i > newReview.rating }"
                 @click="newReview.rating = i"
               />
@@ -33,7 +33,7 @@
             {{ errors.rating }}
           </div>
         </div>
-        
+
         <div class="mb-3">
           <textarea
             v-model="newReview.comment"
@@ -45,10 +45,10 @@
             {{ errors.comment }}
           </div>
         </div>
-        
+
         <div class="flex justify-end">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             class="btn btn-primary"
             :disabled="isSubmitting"
           >
@@ -57,7 +57,7 @@
           </button>
         </div>
       </form>
-    </div>
+    </div> -->
 
     <!-- Reviews List -->
     <div v-if="reviews.length > 0" class="space-y-6">
@@ -75,12 +75,12 @@
               <h4 class="font-medium">{{ review.user?.name || 'Anonymous' }}</h4>
               <div class="flex items-center text-sm text-gray-500">
                 <div class="rating rating-xs">
-                  <input 
-                    v-for="i in 5" 
-                    :key="i" 
-                    type="radio" 
+                  <input
+                    v-for="i in 5"
+                    :key="i"
+                    type="radio"
                     :class="{ 'opacity-30': i > review.rating }"
-                    class="mask mask-star-2 bg-orange-400" 
+                    class="mask mask-star-2 bg-orange-400"
                     :checked="i === review.rating"
                     disabled
                   />
@@ -89,9 +89,9 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Edit/Delete Buttons (for review owner) -->
-          <div v-if="canEditReview(review)" class="dropdown dropdown-end">
+          <!-- <div v-if="canEditReview(review)" class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-sm">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -101,9 +101,9 @@
               <li><a @click="editReview(review)">Edit</a></li>
               <li><a @click="confirmDelete(review)" class="text-red-500">Delete</a></li>
             </ul>
-          </div>
+          </div> -->
         </div>
-        
+
         <div class="mt-2 text-gray-700">
           <div :class="[!isCommentExpanded(review.id) ? 'line-clamp-1' : '']">
             {{ review.comment }}
@@ -118,7 +118,7 @@
           </button>
         </div>
       </div>
-      
+
       <!-- Read more / Show less reviews -->
       <div v-if="reviews.length > initialVisible" class="text-center mt-6">
         <button
@@ -130,7 +130,7 @@
         </button>
       </div>
     </div>
-    
+
     <!-- Empty State -->
     <div v-else class="text-center py-8 text-gray-500">
       No reviews yet. Be the first to review this course!
@@ -197,37 +197,37 @@ const formatDate = (dateString) => {
 const validateForm = () => {
   errors.value = {};
   let isValid = true;
-  
+
   if (!newReview.value.rating) {
     errors.value.rating = 'Please select a rating';
     isValid = false;
   }
-  
+
   if (!newReview.value.comment.trim()) {
     errors.value.comment = 'Please write a review';
     isValid = false;
   }
-  
+
   return isValid;
 };
 
 const submitReview = async () => {
   if (!validateForm()) return;
-  
+
   isSubmitting.value = true;
-  
+
   try {
     const reviewData = {
       rating: newReview.value.rating,
       comment: newReview.value.comment
     };
-    
+
     if (isEditing.value && currentReviewId.value) {
       await reviewStore.updateReview(currentReviewId.value, reviewData);
     } else {
       await reviewStore.addReview(props.courseId, reviewData);
     }
-    
+
     // Reset form
     resetForm();
   } catch (error) {
@@ -244,7 +244,7 @@ const editReview = (review) => {
     rating: review.rating,
     comment: review.comment
   };
-  
+
   // Scroll to the form
   const formElement = document.querySelector('form');
   if (formElement) {
