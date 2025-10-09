@@ -6,15 +6,17 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+
 class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
      */
-    public function run(): void
-    {
-        $this->call([
-            DemoDataSeeder::class,
-        ]);
-    }
+public function run(): void
+{
+    $this->call([
+        // DemoDataSeeder::class,
+        ReviewSeeder::class,
+    ]);
+}
 }

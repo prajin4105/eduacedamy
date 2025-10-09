@@ -35,9 +35,9 @@ class InstructorStats extends BaseWidget
                 ->icon('heroicon-m-user-group')
                 ->color('success'),
 
-            Stat::make('Avg Completion', $completionRate . '%')
-                ->icon('heroicon-m-check-circle')
-                ->color('primary'),
+            // Stat::make('Avg Completion', $completionRate . '%')
+            //     ->icon('heroicon-m-check-circle')
+            //     ->color('primary'),
         ];
     }
 }

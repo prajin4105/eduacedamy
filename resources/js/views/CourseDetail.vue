@@ -42,6 +42,20 @@
                 </li>
               </ul>
             </div>
+
+            <!-- Rating summary above reviews -->
+            <div class="mt-10">
+              <ReviewSummary
+                :course-id="course.id"
+                :is-enrolled="!!course.is_enrolled"
+                :initial-data="{ average_rating: course.rating || 0, total_reviews: course.reviews_count || 0 }"
+              />
+            </div>
+
+            <!-- Reviews list below description/learn/requirements -->
+            <div class="mt-8">
+              <ReviewList :course-id="course.id" :is-enrolled="!!course.is_enrolled" />
+            </div>
           </div>
 
           <!-- Course Sidebar -->
@@ -107,7 +121,7 @@
                   >
                     {{ enrolling ? 'Enrolling...' : (course.is_enrolled ? 'Start Learning' : 'Enroll Now') }}
                   </button>
-                  
+
                 </div>
 
                 <div class="mt-6 border-t border-gray-200 pt-4">
@@ -133,6 +147,8 @@
                     </li>
                   </ul>
                 </div>
+
+
               </div>
             </div>
           </div>
@@ -152,7 +168,7 @@
 
 
       <!-- If the user is NOT enrolled, show the enroll message -->
-      <div v-else class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+      <!-- <div v-else class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
           <h2 class="text-xl font-semibold text-gray-900">Course Content</h2>
           <p v-if="course.videos && course.videos.length" class="text-sm text-gray-500">{{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }} available</p>
@@ -170,7 +186,9 @@
             {{ enrolling ? 'Enrolling...' : 'Enroll Now' }}
           </button>
         </div>
-      </div>
+      </div> -->
+
+
     </div>
   </div>
 </template>
@@ -184,11 +202,15 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
 import CourseProgressTracker from '../components/CourseProgressTracker.vue';
+import ReviewSummary from '@/components/Reviews/ReviewSummary.vue';
+import ReviewList from '@/components/Reviews/ReviewList.vue';
 
 export default {
   name: 'CourseDetail',
   components: {
-    CourseProgressTracker
+    CourseProgressTracker,
+    ReviewSummary,
+    ReviewList
   },
   setup() {
     const route = useRoute();

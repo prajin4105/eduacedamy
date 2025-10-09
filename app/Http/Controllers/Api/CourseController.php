@@ -22,7 +22,7 @@ class CourseController extends Controller
         'enrollments',
         'videos'
     ])
-    ->withCount(['enrollments', 'videos'])
+    ->withCount(['enrollments', 'videos', 'wishlistedBy as wishlist_count'])
     ->where('is_published', true);
 
     // Search filter
@@ -130,12 +130,13 @@ class CourseController extends Controller
             'instructor' => $course->instructor->only(['id', 'name', 'profile_photo_path']),
             'categories' => $course->categories->map->only(['id', 'name', 'slug']),
             'enrollments_count' => $course->enrollments_count,
-            'rating' => 0,
-            'reviews_count' => 0,
+            'rating' => (float) $course->average_rating,
+            'reviews_count' => (int) $course->reviews_count,
             'lessons_count' => $course->videos_count,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
             'is_wishlisted' => in_array((int)$course->id, $wishlistIds),
+            'wishlist_count' => (int) ($course->wishlist_count ?? 0),
             'videos' => $course->videos->map(function ($video) {
                 return [
                     'id' => $video->id,
@@ -165,7 +166,7 @@ class CourseController extends Controller
 
     public function show($slug)
     {
-        $course = Course::with(['instructor', 'videos', 'enrollments'])
+        $course = Course::with(['instructor', 'videos', 'enrollments', 'wishlistedBy'])
             ->where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
@@ -215,8 +216,10 @@ class CourseController extends Controller
                 ];
             }),
             'enrollments_count' => $course->enrollments->where('status', 'completed')->count(),
-            'rating' => 0,
-            'reviews_count' => 0,
+            'rating' => (float) $course->average_rating,
+            'reviews_count' => (int) $course->reviews_count,
+            'wishlist_count' => (int) $course->wishlistedBy()->count(),
+            'is_wishlisted' => Auth::check() ? $course->wishlistedBy()->where('user_id', Auth::id())->exists() : false,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
         ]);

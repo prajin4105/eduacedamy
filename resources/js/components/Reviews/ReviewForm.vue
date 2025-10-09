@@ -4,7 +4,7 @@
       <label class="block text-sm font-medium text-gray-700 mb-1">
         Your Rating <span class="text-red-500">*</span>
       </label>
-      <StarRating v-model="form.rating" :show-text="true" />
+      <StarRating v-model="form.rating" :show-text="true" size="lg" />
       <div v-if="errors.rating" class="mt-1 text-sm text-red-600">
         {{ errors.rating }}
       </div>
@@ -18,12 +18,18 @@
         id="comment"
         v-model="form.comment"
         rows="4"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        maxlength="70"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         :class="{ 'border-red-300': errors.comment }"
-        placeholder="Share your experience with this course..."
+        placeholder="Share your experience with this course (max 70 characters)..."
       ></textarea>
-      <div v-if="errors.comment" class="mt-1 text-sm text-red-600">
-        {{ errors.comment }}
+
+      <!-- ✅ Character counter -->
+      <div class="flex justify-between mt-1 text-sm">
+        <span v-if="errors.comment" class="text-red-600">{{ errors.comment }}</span>
+        <span :class="form.comment.length > 70 ? 'text-red-500' : 'text-gray-500'">
+          {{ form.comment.length }}/70
+        </span>
       </div>
     </div>
 
@@ -31,14 +37,14 @@
       <button
         type="button"
         @click="$emit('cancel')"
-        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         :disabled="isSubmitting"
       >
         Cancel
       </button>
       <button
         type="submit"
-        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         :disabled="isSubmitting"
       >
         <span v-if="isSubmitting" class="inline-flex items-center">
@@ -58,7 +64,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import StarRating from '@/Components/UI/StarRating.vue';
+import StarRating from '@/components/UI/StarRating.vue';
 import { useReviewStore } from '@/stores/reviewStore';
 
 const props = defineProps({
@@ -73,7 +79,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submitted', 'cancel']);
-
 const reviewStore = useReviewStore();
 
 // Form state
@@ -86,7 +91,6 @@ const isSubmitting = ref(false);
 const errors = ref({});
 const isEditing = computed(() => !!props.review);
 
-// Initialize form with review data if editing
 onMounted(() => {
   if (props.review) {
     form.rating = props.review.rating;
@@ -94,56 +98,53 @@ onMounted(() => {
   }
 });
 
-// Form validation
+// ✅ Updated validation
 const validateForm = () => {
   errors.value = {};
   let isValid = true;
-  
+
   if (!form.rating) {
     errors.value.rating = 'Please select a rating';
     isValid = false;
   }
-  
+
   if (!form.comment.trim()) {
     errors.value.comment = 'Please write your review';
     isValid = false;
   } else if (form.comment.trim().length < 10) {
     errors.value.comment = 'Review must be at least 10 characters';
     isValid = false;
+  } else if (form.comment.trim().length > 70) {
+    errors.value.comment = 'Review must not exceed 70 characters';
+    isValid = false;
   }
-  
+
   return isValid;
 };
 
-// Form submission
 const submitForm = async () => {
   if (!validateForm()) return;
-  
+
   isSubmitting.value = true;
   errors.value = {};
-  
+
   try {
     const reviewData = {
       rating: form.rating,
       comment: form.comment.trim()
     };
-    
+
     if (isEditing.value) {
       await reviewStore.updateReview(props.review.id, reviewData);
     } else {
       await reviewStore.addReview(props.courseId, reviewData);
     }
-    
-    // Reset form
+
     form.rating = 0;
     form.comment = '';
-    
-    // Emit success event
     emit('submitted');
   } catch (error) {
     console.error('Error submitting review:', error);
-    
-    // Handle API validation errors
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors;
     } else {

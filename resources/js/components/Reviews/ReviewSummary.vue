@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow">
     <h3 class="text-xl font-semibold mb-4">Student Feedback</h3>
-    
+
     <div class="md:flex items-start">
       <!-- Overall Rating -->
       <div class="text-center mb-6 md:mb-0 md:mr-8">
@@ -9,8 +9,8 @@
           {{ averageRating.toFixed(1) }}
         </div>
         <div class="flex justify-center mb-2">
-          <StarRating 
-            :model-value="Math.round(averageRating)" 
+          <StarRating
+            :model-value="Math.round(averageRating)"
             :disabled="true"
             :show-text="false"
           />
@@ -19,14 +19,14 @@
           {{ totalReviews }} {{ totalReviews === 1 ? 'review' : 'reviews' }}
         </div>
       </div>
-      
+
       <!-- Rating Distribution -->
       <div class="flex-1">
         <div v-for="i in 5" :key="i" class="flex items-center mb-2">
           <span class="w-8 text-sm text-gray-600">{{ 6 - i }} stars</span>
           <div class="flex-1 mx-2 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              class="h-full bg-yellow-400" 
+            <div
+              class="h-full bg-yellow-400"
               :style="{ width: getRatingPercentage(6 - i) + '%' }"
             ></div>
           </div>
@@ -36,20 +36,20 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Add Review Button (for enrolled students) -->
     <div v-if="isEnrolled && !hasUserReviewed && authStore.user" class="mt-6 pt-4 border-t">
-      <button 
-        v-if="!showReviewForm" 
+      <button
+        v-if="!showReviewForm"
         @click="showReviewForm = true"
         class="btn btn-primary"
       >
         Write a Review
       </button>
-      
+
       <div v-else class="mt-4">
         <h4 class="font-medium mb-3">Write a Review</h4>
-        <ReviewForm 
+        <ReviewForm
           :course-id="courseId"
           @submitted="handleReviewSubmitted"
           @cancel="showReviewForm = false"
@@ -62,9 +62,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useReviewStore } from '@/stores/reviewStore';
-import { useAuthStore } from '@/stores/authStore';
-import StarRating from '@/Components/UI/StarRating.vue';
-import ReviewForm from '@/Components/Reviews/ReviewForm.vue';
+import { useAuthStore } from '@/stores/auth';
+import StarRating from '@/components/UI/StarRating.vue';
+import ReviewForm from '@/components/Reviews/ReviewForm.vue';
 
 const props = defineProps({
   courseId: {

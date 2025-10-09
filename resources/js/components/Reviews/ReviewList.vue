@@ -61,7 +61,7 @@
 
     <!-- Reviews List -->
     <div v-if="reviews.length > 0" class="space-y-6">
-      <div v-for="review in reviews" :key="review.id" class="border-b pb-4 last:border-0">
+      <div v-for="review in displayedReviews" :key="review.id" class="border-b pb-4 last:border-0">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center">
             <div class="avatar mr-3">
@@ -104,18 +104,29 @@
           </div>
         </div>
         
-        <p class="mt-2 text-gray-700">{{ review.comment }}</p>
+        <div class="mt-2 text-gray-700">
+          <div :class="[!isCommentExpanded(review.id) ? 'line-clamp-1' : '']">
+            {{ review.comment }}
+          </div>
+          <button
+            v-if="shouldShowCommentToggle(review.comment)"
+            @click="toggleCommentExpanded(review.id)"
+            class="mt-1 text-xs text-indigo-600 hover:text-indigo-700"
+            type="button"
+          >
+            {{ isCommentExpanded(review.id) ? 'Show less' : 'Read more' }}
+          </button>
+        </div>
       </div>
       
-      <!-- Load More Button -->
-      <div v-if="hasMorePages" class="text-center mt-6">
-        <button 
-          @click="loadMore" 
+      <!-- Read more / Show less reviews -->
+      <div v-if="reviews.length > initialVisible" class="text-center mt-6">
+        <button
+          @click="toggleShowAllReviews"
           class="btn btn-outline"
-          :disabled="isLoading"
+          type="button"
         >
-          <span v-if="isLoading" class="loading loading-spinner"></span>
-          Load More Reviews
+          {{ showAllReviews ? 'Show less reviews' : 'Read more reviews' }}
         </button>
       </div>
     </div>
@@ -130,8 +141,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useReviewStore } from '@/stores/reviewStore';
-import { useAuthStore } from '@/stores/authStore';
-import { useCourseStore } from '@/stores/courseStore';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
   courseId: {
@@ -146,7 +156,6 @@ const props = defineProps({
 
 const authStore = useAuthStore();
 const reviewStore = useReviewStore();
-const courseStore = useCourseStore();
 
 // Local state
 const newReview = ref({
@@ -170,9 +179,13 @@ const reviews = computed(() => reviewStore.reviews);
 const averageRating = computed(() => reviewStore.averageRating);
 const totalReviews = computed(() => reviewStore.totalReviews);
 const isLoading = computed(() => reviewStore.isLoading);
-const hasMorePages = computed(() => {
-  // Implement pagination logic if needed
-  return false;
+
+// Show only first N by default with toggle
+const initialVisible = 3;
+const showAllReviews = ref(false);
+const displayedReviews = computed(() => {
+  if (showAllReviews.value) return reviews.value;
+  return reviews.value.slice(0, initialVisible);
 });
 
 // Methods
@@ -263,8 +276,9 @@ const resetForm = () => {
   errors.value = {};
 };
 
-const loadMore = () => {
-  // Implement pagination if needed
+// Toggle reviews expansion
+const toggleShowAllReviews = () => {
+  showAllReviews.value = !showAllReviews.value;
 };
 
 const canEditReview = (review) => {
@@ -276,6 +290,22 @@ const canEditReview = (review) => {
 onMounted(async () => {
   await reviewStore.fetchReviews(props.courseId);
 });
+
+// --- Per-review comment expand/collapse ---
+const expandedComments = ref(new Set());
+const shouldShowCommentToggle = (comment) => {
+  return typeof comment === 'string' && comment.length > 60; // heuristic threshold
+};
+const isCommentExpanded = (id) => expandedComments.value.has(id);
+const toggleCommentExpanded = (id) => {
+  if (expandedComments.value.has(id)) {
+    expandedComments.value.delete(id);
+  } else {
+    expandedComments.value.add(id);
+  }
+  // Force reactivity on Set
+  expandedComments.value = new Set(expandedComments.value);
+};
 </script>
 
 <style scoped>

@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 import axios from 'axios';
 
 export const useReviewStore = defineStore('review', () => {
+    const authStore = useAuthStore();
     const reviews = ref([]);
     const averageRating = ref(0);
     const totalReviews = ref(0);
@@ -20,7 +22,7 @@ export const useReviewStore = defineStore('review', () => {
         isLoading.value = true;
         error.value = null;
         try {
-            const response = await axios.get(`/api/courses/${courseId}/reviews`);
+            const response = await axios.get(`/courses/${courseId}/reviews`);
             reviews.value = response.data.data;
             averageRating.value = parseFloat(response.data.average_rating) || 0;
             totalReviews.value = response.data.total_reviews || 0;
@@ -58,7 +60,7 @@ export const useReviewStore = defineStore('review', () => {
 
     const addReview = async (courseId, reviewData) => {
         try {
-            const response = await axios.post(`/api/courses/${courseId}/reviews`, reviewData);
+            const response = await axios.post(`/courses/${courseId}/reviews`, reviewData);
             // Add the new review to the beginning of the list
             reviews.value.unshift(response.data.data);
             
@@ -82,7 +84,7 @@ export const useReviewStore = defineStore('review', () => {
 
     const updateReview = async (reviewId, reviewData) => {
         try {
-            const response = await axios.put(`/api/reviews/${reviewId}`, reviewData);
+            const response = await axios.put(`/reviews/${reviewId}`, reviewData);
             const index = reviews.value.findIndex(r => r.id === reviewId);
             
             if (index !== -1) {
@@ -108,7 +110,7 @@ export const useReviewStore = defineStore('review', () => {
 
     const deleteReview = async (reviewId) => {
         try {
-            const response = await axios.delete(`/api/reviews/${reviewId}`);
+            const response = await axios.delete(`/reviews/${reviewId}`);
             reviews.value = reviews.value.filter(r => r.id !== reviewId);
             
             // Update stats
