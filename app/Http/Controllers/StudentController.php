@@ -68,9 +68,9 @@ class StudentController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user is enrolled in this course
-        if (!$user->isEnrolledIn($course->id)) {
-            return response()->json(['error' => 'You are not enrolled in this course.'], 403);
+        // Allow access if enrolled or has active subscription covering the course
+        if (!$user->isEnrolledIn($course->id) && !$user->canAccessCourse($course)) {
+            return response()->json(['error' => 'Access denied. Subscription or enrollment required.'], 403);
         }
 
         // Load course with videos and instructor
@@ -92,12 +92,12 @@ class StudentController extends Controller
             'instructor' => [
                 'name' => $course->instructor->name,
             ],
-            'videos' => $course->videos->map(function ($video) {
+            'videos' => $course->videos->map(function ($video) use ($course, $user) {
                 return [
                     'id' => $video->id,
                     'title' => $video->title,
                     'description' => $video->description,
-                    'video_url' => $video->video_url ? asset('storage/' . $video->video_url) : null,
+                    'video_url' => $user->canAccessCourse($course) && $video->video_url ? asset('storage/' . $video->video_url) : null,
                     'thumbnail_url' => $video->thumbnail_url ? asset('storage/' . $video->thumbnail_url) : null,
                     'duration_seconds' => $video->duration_seconds,
                     'sort_order' => $video->sort_order,
@@ -110,9 +110,9 @@ class StudentController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user is enrolled in this course
-        if (!$user->isEnrolledIn($course->id)) {
-            return response()->json(['error' => 'You are not enrolled in this course.'], 403);
+        // Allow access if enrolled or has active subscription covering the course
+        if (!$user->isEnrolledIn($course->id) && !$user->canAccessCourse($course)) {
+            return response()->json(['error' => 'Access denied. Subscription or enrollment required.'], 403);
         }
 
         // Load course with videos
@@ -158,7 +158,7 @@ class StudentController extends Controller
                 'id' => $video->id,
                 'title' => $video->title,
                 'description' => $video->description,
-                'video_url' => $video->video_url ? asset('storage/' . $video->video_url) : null,
+                'video_url' => $user->canAccessCourse($course) && $video->video_url ? asset('storage/' . $video->video_url) : null,
                 'thumbnail_url' => $video->thumbnail_url ? asset('storage/' . $video->thumbnail_url) : null,
                 'duration_seconds' => $video->duration_seconds,
                 'sort_order' => $video->sort_order,

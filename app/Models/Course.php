@@ -107,6 +107,11 @@ public function wishlistedBy()
         return $this->belongsToMany(Category::class, 'course_category');
     }
 
+    public function plans(): BelongsToMany
+    {
+        return $this->belongsToMany(Plan::class, 'course_plan');
+    }
+
     public function students(): HasManyThrough
     {
         return $this->hasManyThrough(User::class, Enrollment::class, 'course_id', 'id', 'id', 'user_id')
@@ -141,6 +146,32 @@ public function wishlistedBy()
             ->count();
 
         return round(($completedEnrollments / $totalEnrollments) * 100, 2);
+    }
+
+    /**
+     * Check if individual purchase is allowed
+     * Course can be purchased individually if it's not in any plan
+     */
+    public function allowsIndividualPurchase(): bool
+    {
+        return $this->plans()->count() === 0;
+    }
+
+    /**
+     * Check if course requires subscription
+     * Course requires subscription if it's in any plan
+     */
+    public function requiresSubscription(): bool
+    {
+        return $this->plans()->count() > 0;
+    }
+
+    /**
+     * Get available plans for this course
+     */
+    public function getAvailablePlans()
+    {
+        return $this->plans()->where('is_active', true)->get();
     }
 
 

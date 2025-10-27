@@ -86,8 +86,9 @@
 
               <div class="mt-4">
                 <div class="flex items-baseline">
-                  <span class="text-2xl font-bold text-gray-900">${{ course.price || '0' }}</span>
-                  <span v-if="course.original_price" class="ml-2 text-sm text-gray-500 line-through">${{ course.original_price }}</span>
+                  <span v-if="course.available_plans?.length > 0" class="text-2xl font-bold text-purple-600">Free with Subscription</span>
+                  <span v-else class="text-2xl font-bold text-gray-900">₹{{ course.price || '0' }}</span>
+                  <span v-if="course.original_price" class="ml-2 text-sm text-gray-500 line-through">₹{{ course.original_price }}</span>
                 </div>
 
                 <div class="mt-4 space-y-4">
@@ -115,11 +116,24 @@
                   </div>
 
                   <button
-                    @click="course.is_enrolled ? goToCourse() : enrollCourse()"
+                    @click="course.is_enrolled ? goToCourse() : handleEnrollClick()"
                     :disabled="enrolling"
-                    class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="getEnrollButtonClass()"
+                    class="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {{ enrolling ? 'Enrolling...' : (course.is_enrolled ? 'Start Learning' : 'Enroll Now') }}
+                    {{ getEnrollButtonText() }}
+                  </button>
+
+                  <!-- Test Button (shown when course is completed and test is available) -->
+                  <button
+                    v-if="course.is_enrolled && course.enrollment_status === 'completed' && hasTest && !testPassed"
+                    @click="startTest"
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Take Final Test
                   </button>
 
                 </div>
@@ -146,9 +160,18 @@
                       {{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }}
                     </li>
                   </ul>
+                  
+                  <!-- Show available plans for subscription courses -->
+                  <div v-if="course.available_plans?.length > 0" class="mt-4">
+                    <h5 class="text-sm font-medium text-gray-900 mb-2">Available in:</h5>
+                    <div class="space-y-2">
+                      <div v-for="plan in course.available_plans" :key="plan.id" class="flex items-center justify-between bg-purple-50 p-2 rounded">
+                        <span class="text-sm font-medium text-purple-900">{{ plan.name }}</span>
+                        <span class="text-sm text-purple-600">₹{{ plan.price }}/{{ plan.interval }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-
               </div>
             </div>
           </div>
@@ -163,38 +186,10 @@
           @progress-updated="handleProgressUpdate"
         />
       </div>
-
-      <!-- Course Content only visible if the user is enrolled -->
-
-
-      <!-- If the user is NOT enrolled, show the enroll message -->
-      <!-- <div v-else class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-          <h2 class="text-xl font-semibold text-gray-900">Course Content</h2>
-          <p v-if="course.videos && course.videos.length" class="text-sm text-gray-500">{{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }} available</p>
-        </div>
-        <div class="border-t border-gray-200 p-8 text-center text-gray-500">
-          <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          <p>To access the course content, please enroll first.</p>
-          <button
-            @click="enrollCourse"
-            :disabled="enrolling"
-            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ enrolling ? 'Enrolling...' : 'Enroll Now' }}
-          </button>
-        </div>
-      </div> -->
-
-
     </div>
   </div>
+
 </template>
-
-
-
 
 <script>
 import { ref, computed, onMounted } from 'vue';
@@ -223,12 +218,22 @@ export default {
     const imageLoading = ref(true);
     const imageError = ref(false);
 
+    // Enrollment modal (removed - using simplified logic)
+    // const showEnrollModal = ref(false);
+    // const selectedEnrollOption = ref(null);
+    // const processingEnrollment = ref(false);
+
+    // Test-related variables
+    const hasTest = ref(false);
+    const testPassed = ref(false);
+    const testData = ref(null);
+
     // Computed for course sections
     const courseSections = computed(() => {
       return course.value?.sections || [];
     });
 
-    // Computed for requirements (supports both array and comma-separated string)
+    // Computed for requirements
     const formattedRequirements = computed(() => {
       if (!course.value?.requirements) return [];
 
@@ -268,7 +273,6 @@ export default {
     const getCourseImage = (courseData) => {
       if (!courseData) return '';
 
-      // Check multiple possible image field names
       const imageFields = ['image_url', 'image', 'thumbnail', 'thumbnail_url', 'cover_image'];
 
       for (const field of imageFields) {
@@ -277,23 +281,7 @@ export default {
         }
       }
 
-      // Return empty string to let the error handler show fallback
       return '';
-    };
-
-    const getInstructorAvatar = (instructor) => {
-      if (!instructor) return '';
-
-      if (instructor.avatar_url && instructor.avatar_url.trim() !== '') {
-        return instructor.avatar_url;
-      }
-
-      if (instructor.avatar && instructor.avatar.trim() !== '') {
-        return instructor.avatar;
-      }
-
-      // Generate avatar using UI Avatars service
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(instructor.name)}&size=64&background=6366f1&color=ffffff`;
     };
 
     const handleImageError = (event) => {
@@ -306,13 +294,6 @@ export default {
       console.log('Course image loaded successfully');
       imageError.value = false;
       imageLoading.value = false;
-    };
-
-    const handleInstructorAvatarError = (event) => {
-      console.log('Instructor avatar failed to load, using fallback');
-      if (course.value?.instructor?.name) {
-        event.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(course.value.instructor.name)}&size=64&background=6366f1&color=ffffff`;
-      }
     };
 
     const getProgressPercentage = () => {
@@ -334,33 +315,6 @@ export default {
           return 'In Progress';
         default:
           return 'Enrolled';
-      }
-    };
-
-    const truncateText = (text, length) => {
-      if (!text) return '';
-      return text.length > length ? text.substring(0, length) + '...' : text;
-    };
-
-    const formatDuration = (seconds) => {
-      if (!seconds) return '';
-
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const secs = seconds % 60;
-
-      if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      }
-      return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    const toggleSection = (index) => {
-      const sectionIndex = expandedSections.value.indexOf(index);
-      if (sectionIndex > -1) {
-        expandedSections.value.splice(sectionIndex, 1);
-      } else {
-        expandedSections.value.push(index);
       }
     };
 
@@ -419,38 +373,93 @@ export default {
         course.value.is_enrolled = false;
       }
     };
-const enrollCourse = async () => {
-  if (!authStore.isAuthenticated) {
-    window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
-    return;
-  }
 
-  try {
-    enrolling.value = true;
-    const response = await axios.post('/enrollments', {
-      course_id: course.value.id
-    });
+    // Handle enroll button click
+    const handleEnrollClick = () => {
+      if (!authStore.isAuthenticated) {
+        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        return;
+      }
 
-    if (response.data.message) {
-      course.value.is_enrolled = true;
-      course.value.enrollment_status = 'enrolled';
+      // Check if course requires subscription (is in any plan)
+      if (course.value.requires_subscription || course.value.available_plans?.length > 0) {
+        // Redirect to pricing page for subscription courses
+        window.location.href = '/pricing';
+      } else {
+        // Direct enrollment for regular courses (not in any plan)
+        enrollCourse();
+      }
+    };
 
-      setTimeout(() => {
-        window.location.href = `/course/${route.params.slug}`;
-      }, 1000);
-    }
-  } catch (error) {
-    console.error('Error enrolling in course:', error);
-    if (error.response?.status === 401) {
-      authStore.clearAuth();
-      window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
-    }
-  } finally {
-    enrolling.value = false;
-  }
-};
+    // Select enrollment option (removed - using simplified logic)
+    // const selectOption = (option) => {
+    //   selectedEnrollOption.value = option;
+    // };
 
+    // Close modal (removed - using simplified logic)
+    // const closeEnrollModal = () => {
+    //   if (!processingEnrollment.value) {
+    //     showEnrollModal.value = false;
+    //     selectedEnrollOption.value = null;
+    //   }
+    // };
 
+    // Proceed with selected enrollment option (removed - using simplified logic)
+    // const proceedWithEnrollment = async () => {
+    //   if (!selectedEnrollOption.value) return;
+    //   processingEnrollment.value = true;
+    //   try {
+    //     if (selectedEnrollOption.value === 'subscription') {
+    //       window.location.href = '/pricing';
+    //     } else if (selectedEnrollOption.value === 'purchase') {
+    //       await enrollCourse();
+    //       closeEnrollModal();
+    //     }
+    //   } catch (error) {
+    //     console.error('Error processing enrollment:', error);
+    //   } finally {
+    //     processingEnrollment.value = false;
+    //   }
+    // };
+
+    // Enroll in course
+    const enrollCourse = async () => {
+      if (!authStore.isAuthenticated) {
+        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        return;
+      }
+
+      try {
+        enrolling.value = true;
+        const response = await axios.post('/enrollments', {
+          course_id: course.value.id
+        });
+
+        if (response.data.message) {
+          course.value.is_enrolled = true;
+          course.value.enrollment_status = 'enrolled';
+
+          setTimeout(() => {
+            window.location.href = `/course/${route.params.slug}`;
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error enrolling in course:', error);
+        
+        if (error.response?.status === 422 && error.response.data.requires_subscription) {
+          // Course requires subscription - redirect to pricing
+          window.location.href = '/pricing';
+        } else if (error.response?.status === 401) {
+          authStore.clearAuth();
+          window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        } else {
+          // Show error message
+          console.error('Enrollment error:', error.response?.data?.message || 'Failed to enroll');
+        }
+      } finally {
+        enrolling.value = false;
+      }
+    };
 
     const toggleWishlist = async () => {
       if (!authStore.isAuthenticated) {
@@ -483,6 +492,71 @@ const enrollCourse = async () => {
       window.location.href = `/course/${route.params.slug}`;
     };
 
+    // Test-related methods
+    const checkTestAvailability = async () => {
+      if (!course.value?.id) return;
+
+      try {
+        const response = await axios.get(`/api/courses/${course.value.id}/test`);
+        if (response.data.success) {
+          hasTest.value = true;
+          testData.value = response.data.data;
+        }
+      } catch (error) {
+        console.log('No test available for this course');
+        hasTest.value = false;
+      }
+    };
+
+    const checkTestStatus = async () => {
+      if (!course.value?.id) return;
+
+      try {
+        const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
+        if (response.data.success) {
+          const attempts = response.data.data.attempts;
+          testPassed.value = attempts.some(attempt => attempt.is_passed);
+        }
+      } catch (error) {
+        console.log('Error checking test status:', error);
+      }
+    };
+
+    const startTest = () => {
+      window.location.href = `/student/course/${course.value.id}/test`;
+    };
+
+    // Helper methods for enrollment button
+    const getEnrollButtonText = () => {
+      if (enrolling.value) {
+        return 'Enrolling...';
+      }
+      
+      if (course.value?.is_enrolled) {
+        return 'Start Learning';
+      }
+      
+      // Check if course is in any plan (subscription course)
+      if (course.value?.requires_subscription || course.value?.available_plans?.length > 0) {
+        return 'Subscribe to Access';
+      }
+      
+      return 'Buy Now';
+    };
+
+    const getEnrollButtonClass = () => {
+      if (course.value?.is_enrolled) {
+        return 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500';
+      }
+      
+      // Check if course is in any plan (subscription course)
+      if (course.value?.requires_subscription || course.value?.available_plans?.length > 0) {
+        return 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500';
+      }
+      
+      return 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500';
+    };
+
     onMounted(async () => {
       const token = localStorage.getItem('auth_token');
       if (token && !authStore.token) {
@@ -490,6 +564,11 @@ const enrollCourse = async () => {
       }
 
       await fetchCourse();
+
+      if (course.value?.id) {
+        await checkTestAvailability();
+        await checkTestStatus();
+      }
     });
 
     return {
@@ -503,22 +582,271 @@ const enrollCourse = async () => {
       imageError,
       formattedRequirements,
       formattedLearningOutcomes,
+      // showEnrollModal, (removed)
+      // selectedEnrollOption, (removed)
+      // processingEnrollment, (removed)
       getCourseImage,
-      getInstructorAvatar,
       handleImageError,
       handleImageLoad,
-      handleInstructorAvatarError,
       getProgressPercentage,
       getEnrollmentStatusText,
-      truncateText,
-      formatDuration,
-      toggleSection,
+      handleEnrollClick,
+      // selectOption, (removed)
+      // closeEnrollModal, (removed)
+      // proceedWithEnrollment, (removed)
       enrollCourse,
       toggleWishlist,
       handleProgressUpdate,
-      goToCourse
+      goToCourse,
+      hasTest,
+      testPassed,
+      testData,
+      startTest,
+      getEnrollButtonText,
+      getEnrollButtonClass
     };
   }
 };
 </script>
 
+<style scoped>
+/* Modal animations */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+/* Smooth transitions */
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Radio button styling */
+input[type="radio"]:checked {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+/* Hover effects for options */
+.border-2:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Backdrop blur effect */
+.bg-opacity-75 {
+  backdrop-filter: blur(4px);
+}
+
+/* Smooth scroll */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles */
+button:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  box-shadow: 0 0 0 2px #4f46e5;
+}
+
+/* Disabled state */
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Loading spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive modal */
+@media (max-width: 640px) {
+  .sm\:max-w-lg {
+    max-width: calc(100% - 2rem);
+  }
+
+  .modal-panel {
+    margin: 1rem;
+  }
+}
+
+/* Prose styling for description */
+.prose {
+  max-width: none;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.prose p {
+  margin-bottom: 1em;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+/* Progress bar animation */
+.bg-indigo-600 {
+  transition: width 0.5s ease-in-out;
+}
+
+/* Card hover effects */
+.rounded-lg:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Image loading placeholder */
+.bg-gray-200 {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Checkmark animation */
+.text-green-500 {
+  animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Modal content spacing */
+.space-y-1 > * + * {
+  margin-top: 0.25rem;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+/* Button ripple effect */
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Smooth color transitions */
+.border-indigo-200,
+.border-gray-200 {
+  transition: border-color 0.3s ease;
+}
+
+/* Selected option highlight */
+input[type="radio"]:checked + div {
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* Price emphasis */
+.text-xl.font-bold {
+  letter-spacing: -0.025em;
+}
+
+/* Feature list styling */
+.flex.items-center.text-xs {
+  line-height: 1.5;
+}
+
+/* Modal shadow */
+.shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  .text-lg {
+    font-size: 1rem;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+  }
+
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+}
+
+/* Accessibility improvements */
+*:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .fixed {
+    display: none;
+  }
+}
+</style>

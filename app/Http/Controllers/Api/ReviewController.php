@@ -18,7 +18,7 @@ class ReviewController extends Controller
     {
         $reviews = $course->reviews()
             ->with(['user' => function($query) {
-                $query->select('id', 'name', 'profile_photo_path');
+                $query->select('id', 'name'); // ✅ removed profile_photo_path
             }])
             ->latest()
             ->paginate(10);
@@ -80,14 +80,12 @@ class ReviewController extends Controller
             'comment' => $request->comment,
         ]);
 
-        // Refresh the course to get updated review counts
         $course->refresh();
 
-        // Get updated rating distribution
         $ratingDistribution = $this->getRatingDistribution($course);
 
-        // Load user relationship for response
-        $review->load('user:id,name,profile_photo_path');
+        // ✅ fixed line below
+        $review->load('user:id,name');
 
         return response()->json([
             'message' => 'Review submitted successfully.',
@@ -111,16 +109,14 @@ class ReviewController extends Controller
         ]);
 
         $review->update($request->only(['rating', 'comment']));
-        
-        // Refresh the course to get updated review counts
+
         $course = $review->course->fresh();
-        
-        // Get updated rating distribution
+
         $ratingDistribution = $this->getRatingDistribution($course);
 
         return response()->json([
             'message' => 'Review updated successfully.',
-            'data' => $review->fresh(['user:id,name,profile_photo_path']),
+            'data' => $review->fresh(['user:id,name']), // ✅ fixed
             'average_rating' => (float) $course->average_rating,
             'total_reviews' => $course->reviews_count,
             'rating_distribution' => $ratingDistribution,
@@ -133,14 +129,12 @@ class ReviewController extends Controller
     public function destroy(Review $review)
     {
         $this->authorize('delete', $review);
-        
+
         $course = $review->course;
         $review->delete();
-        
-        // Refresh the course to get updated review counts
+
         $course->refresh();
-        
-        // Get updated rating distribution
+
         $ratingDistribution = $this->getRatingDistribution($course);
 
         return response()->json([
@@ -150,12 +144,9 @@ class ReviewController extends Controller
             'rating_distribution' => $ratingDistribution,
         ]);
     }
-    
+
     /**
      * Get rating distribution for a course
-     *
-     * @param Course $course
-     * @return array
      */
     protected function getRatingDistribution(Course $course)
     {
@@ -165,7 +156,6 @@ class ReviewController extends Controller
             ->pluck('count', 'rating')
             ->toArray();
 
-        // Ensure all rating levels are present with 0 count
         $fullDistribution = array_fill_keys(range(1, 5), 0);
         foreach ($ratingDistribution as $rating => $count) {
             $fullDistribution[$rating] = (int) $count;

@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CourseProgressController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\PlanController;
+use App\Http\Controllers\Api\ForgotPasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +26,15 @@ use App\Http\Controllers\Api\CertificateController;
 // Token-based auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp']);
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword']);
+
+// Redirect GET requests to forgot-password to the frontend page
+Route::get('/forgot-password', function () {
+    return redirect('/forgot-password');
+});
+
 
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -48,6 +59,8 @@ Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/{slug}', [CourseController::class, 'show']);
 Route::get('/instructors', [CourseController::class, 'instructors']);
 Route::get('/levels', [CourseController::class, 'levels']);
+Route::get('/plans', [PlanController::class, 'index']);
+Route::get('/plans/{slug}', [PlanController::class, 'show']);
 
 // Public review routes
 Route::get('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
@@ -77,11 +90,19 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::get('/courses/{courseId}/enrollment-status', [CourseProgressController::class, 'getCourseEnrollmentStatus']);
 });
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\SubscriptionCourseController;
 Route::match(['get', 'post'], '/create-order', [PaymentController::class, 'createOrder']);
 
 // Protected enrollment check route
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/enrollments/check', [EnrollmentController::class, 'checkEnrollment']);
+    // Subscription routes
+    Route::post('/subscriptions/subscribe', [SubscriptionController::class, 'subscribe']);
+    Route::post('/subscriptions/cancel', [SubscriptionController::class, 'cancel']);
+    Route::get('/subscriptions/status', [SubscriptionController::class, 'status']);
+    Route::get('/subscriptions/courses', [SubscriptionCourseController::class, 'index']);
+    Route::get('/subscriptions', [SubscriptionController::class, 'mySubscriptions']);
 });
 
 

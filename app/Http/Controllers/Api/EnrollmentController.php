@@ -84,6 +84,16 @@ class EnrollmentController extends Controller
         $user = Auth::user();
         $course = Course::findOrFail($request->course_id);
 
+        // Check if course allows individual purchase
+        if (!$course->allowsIndividualPurchase()) {
+            return response()->json([
+                'message' => 'This course is only available through subscription plans. Please subscribe to a plan to access this course.',
+                'course_type' => $course->course_type,
+                'requires_subscription' => true,
+                'available_plans' => $course->getAvailablePlans()
+            ], 422);
+        }
+
         $existingEnrollment = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->where('status', 'completed')

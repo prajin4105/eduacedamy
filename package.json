@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "@vitejs/plugin-vue": "^6.0.1",
     "pinia": "^3.0.3",
     "vite-plugin-html": "^3.2.2",

@@ -16,7 +16,10 @@ public function run(): void
 {
     $this->call([
         // DemoDataSeeder::class,
+        // PlanSeeder::class,
         ReviewSeeder::class,
+
     ]);
+
 }
 }

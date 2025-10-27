@@ -57,61 +57,93 @@
         <div class="mt-10">
           <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <!-- Course cards will be dynamically loaded here -->
-            <div v-for="course in featuredCourses" :key="course.id" class="flex flex-col rounded-lg shadow-lg overflow-hidden">
-              <div class="flex-shrink-0">
-                <img class="h-48 w-full object-cover" :src="course.image || 'https://via.placeholder.com/400x225'" :alt="course.title">
-              </div>
-              <div class="flex-1 bg-white p-6 flex flex-col justify-between">
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-indigo-600">
-                    {{ course.category || 'General' }}
-                  </p>
-                  <router-link :to="`/courses/${course.slug}`" class="block mt-2">
-                    <p class="text-xl font-semibold text-gray-900">{{ course.title }}</p>
-                    <p class="mt-3 text-base text-gray-500">{{ course.excerpt || 'Learn from industry experts with this comprehensive course.' }}</p>
-                  </router-link>
-                </div>
+          <div
+  v-for="course in featuredCourses"
+  :key="course.id"
+  class="group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden"
+>
+  <!-- Image -->
+  <div class="relative">
+    <img
+      class="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+      :src="course.image || 'https://via.placeholder.com/400x225'"
+      :alt="course.title"
+    >
+    <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow">
+      {{ course.category || 'General' }}
+    </span>
+  </div>
 
-                <div class="mt-6 flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                      <span class="sr-only">{{ course.instructor?.name || 'Instructor' }}</span>
-                      <img class="h-10 w-10 rounded-full" :src="course.instructor?.avatar || 'https://ui-avatars.com/api/?name=' + (course.instructor?.name || 'Instructor')" alt="">
-                    </div>
-                    <div class="ml-3">
-                      <p class="text-sm font-medium text-gray-900">
-                        {{ course.instructor?.name || 'Instructor' }}
-                      </p>
-                      <div class="flex space-x-1 text-sm text-gray-500">
-                        <span class="text-lg font-bold text-green-600">
-                          ${{ course.price || '99.99' }}
-                        </span>
-                        <span aria-hidden="true">
-                          &middot;
-                        </span>
-                        <span>
-                          {{ course.level || 'All Levels' }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <button
-                      v-if="user && user.role === 'student'"
-                      @click="buyCourse(course)"
-                      :disabled="isEnrolled(course.id)"
-                      :class="isEnrolled(course.id) ? 'bg-green-100 text-green-800' : 'bg-indigo-600 text-white hover:bg-indigo-700'"
-                      class="px-4 py-2 rounded-lg font-medium"
-                    >
-                      {{ isEnrolled(course.id) ? 'Enrolled' : 'Enroll Now' }}
-                    </button>
-                    <router-link v-else to="/login" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium">
-                      Enroll now
-                    </router-link>
-                  </div>
-                </div>
-              </div>
-            </div>
+  <!-- Content -->
+  <div class="flex-1 flex flex-col justify-between p-6 space-y-4">
+    <!-- Title & Description -->
+    <div>
+      <router-link :to="`/courses/${course.slug}`" class="block">
+        <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+          {{ course.title }}
+        </h3>
+        <p class="mt-2 text-gray-600 text-sm line-clamp-2">
+          {{ course.excerpt || 'Learn from industry experts with this comprehensive course.' }}
+        </p>
+      </router-link>
+    </div>
+
+    <!-- Instructor + Price -->
+    <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+      <div class="flex items-center">
+        <img
+          class="h-10 w-10 rounded-full object-cover"
+          :src="course.instructor?.avatar || 'https://ui-avatars.com/api/?name=' + (course.instructor?.name || 'Instructor')"
+          alt="Instructor"
+        >
+        <div class="ml-3">
+          <p class="text-sm font-medium text-gray-900">
+            {{ course.instructor?.name || 'Instructor' }}
+          </p>
+          <p class="text-sm text-gray-500 flex items-center gap-1">
+            <span class="font-semibold text-green-600">${{ course.price || '99.99' }}</span>
+            <span class="text-gray-400">•</span>
+            <span>{{ course.level || 'All Levels' }}</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Button -->
+      <div>
+        <!-- Start Learning -->
+        <router-link
+          v-if="user && user.role === 'student' && (course.can_access === true || isEnrolled(course.id))"
+          :to="`/courses/${course.slug}`"
+          class="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 font-medium transition"
+        >
+          Start Learning
+        </router-link>
+
+        <!-- Buy / Subscribe -->
+        <button
+          v-else-if="user && user.role === 'student'"
+          @click="handleCourseAction(course)"
+          :disabled="isEnrolled(course.id)"
+          :class="getCourseButtonClass(course)"
+          class="text-sm px-4 py-2 rounded-lg font-medium transition"
+        >
+          {{ getCourseButtonText(course) }}
+        </button>
+
+        <!-- Not logged in -->
+        <router-link
+          v-else
+          to="/login"
+          class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium transition"
+        >
+          Enroll Now
+        </router-link>
+      </div>
+    </div>
+  </div>
+</div>
+
+
           </div>
         </div>
       </div>
@@ -166,9 +198,9 @@ const authStore = useAuthStore();
 
 
 
-// Use auth store for authentication state, fallback to injected values
-const user = computed(() => authStore.user || injectedUser);
-const isAuthenticated = computed(() => authStore.isAuthenticated || injectedIsAuthenticated);
+// Use auth store for authentication state
+const user = computed(() => authStore.user);
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const featuredCourses = ref([]);
 const enrolledCourses = ref([]);
@@ -263,6 +295,17 @@ const buyCourse = async (course) => {
       messageType.value = 'error';
       return;
     }
+
+    // Check if course requires subscription
+    if (course.requires_subscription || course.available_plans?.length > 0) {
+      message.value = 'This course requires a subscription. Please subscribe to a plan to access this course.';
+      messageType.value = 'error';
+      setTimeout(() => {
+        window.location.href = '/pricing';
+      }, 2000);
+      return;
+    }
+
 // Step 2: Create order
 console.log('Creating Razorpay order...');
 const { data } = await axios.get(`/create-order?amount=${Math.round(course.price * 100)}`);
@@ -340,6 +383,40 @@ const logout = async () => {
     // Redirect to home page
     window.location.href = '/';
   }
+};
+
+// Helper methods for course actions
+const handleCourseAction = (course) => {
+  if (course.requires_subscription || course.available_plans?.length > 0) {
+    // Redirect to pricing page for subscription courses
+    window.location.href = '/pricing';
+  } else {
+    // Regular course purchase
+    buyCourse(course);
+  }
+};
+
+const getCourseButtonText = (course) => {
+  if (isEnrolled(course.id)) {
+    return 'Enrolled';
+  }
+
+  if (course.requires_subscription || course.available_plans?.length > 0) {
+    return 'Subscribe';
+  }
+  return 'Buy Now';
+};
+
+const getCourseButtonClass = (course) => {
+  if (isEnrolled(course.id)) {
+    return 'bg-green-100 text-green-800';
+  }
+
+  if (course.requires_subscription || course.available_plans?.length > 0) {
+    return 'bg-purple-600 text-white hover:bg-purple-700';
+  }
+
+  return 'bg-indigo-600 text-white hover:bg-indigo-700';
 };
 
 // Fetch featured courses

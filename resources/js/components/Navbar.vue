@@ -23,6 +23,20 @@
             >
               Courses
             </router-link>
+            <router-link
+              to="/pricing"
+              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
+              :class="$route.path === '/pricing' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+            >
+              Pricing
+            </router-link>
+             <router-link
+              to="/subscriptions"
+              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
+              :class="$route.path === '/pricing' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+            >
+              My Subscriptions
+            </router-link>
           </div>
         </div>
         <div class="hidden sm:ml-6 sm:flex sm:items-center">

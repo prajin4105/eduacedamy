@@ -67,7 +67,7 @@
               </div>
             </div>
 
-            <!-- Levels -->
+          <!-- Levels -->
             <div class="bg-white p-4 rounded-lg shadow">
               <h3 class="text-lg font-medium text-gray-900 mb-4">Level</h3>
               <div class="space-y-2">
@@ -88,6 +88,43 @@
                     class="ml-3 text-sm text-gray-700"
                   >
                     {{ level.name }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course Type -->
+            <div class="bg-white p-4 rounded-lg shadow">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Course Type</h3>
+              <div class="space-y-2">
+                <div class="flex items-center">
+                  <input
+                    id="type-subscription"
+                    v-model="selectedTypes"
+                    type="checkbox"
+                    value="subscription"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    for="type-subscription"
+                    class="ml-3 text-sm text-gray-700"
+                  >
+                    Subscription Plan Courses
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <input
+                    id="type-regular"
+                    v-model="selectedTypes"
+                    type="checkbox"
+                    value="regular"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    for="type-regular"
+                    class="ml-3 text-sm text-gray-700"
+                  >
+                    Regular Courses
                   </label>
                 </div>
               </div>
@@ -192,7 +229,7 @@
                         />
                         <!-- Badge overlay for featured/popular courses -->
                         <div
-                          v-if="course.is_featured || course.is_popular"
+                          v-if="course.is_featured || course.is_popular || course.requires_subscription"
                           class="absolute top-2 left-2"
                         >
                           <span
@@ -207,6 +244,12 @@
                           >
                             🔥 Popular
                           </span>
+                          <span
+                            v-else-if="course.requires_subscription"
+                            class="inline-flex items-center px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full"
+                          >
+                            Included in plan
+                          </span>
                         </div>
 
                         <!-- Price overlay -->
@@ -218,9 +261,9 @@
                             <span v-else-if="parseFloat(course.price) > 0" class="bg-gray-900 text-white px-2 py-1 rounded text-sm font-bold">
                               ${{ course.price }}
                             </span>
-                            <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
+                            <!-- <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold"></span> -->
                           </div>
-                          <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
+                          <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold"></span>
                         </div>
                       </div>
                     </div>
@@ -349,11 +392,12 @@
                           </button>
                         </div>
 
+                        <!-- ✅ CHANGED: Single button for all courses -->
                         <router-link
                           :to="`/courses/${course.slug}`"
                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                         >
-                          {{ course.is_enrolled ? 'Continue Learning' : 'View Course' }}
+                          {{ course.is_enrolled ? 'Continue Learning' : 'View Details' }}
                           <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                           </svg>
@@ -516,19 +560,10 @@ const visiblePages = computed(() => {
 
 // Image handling functions
 const getCourseImage = (course) => {
-  // Priority order for image sources:
-  // 1. course.image (full URL)
-  // 2. course.thumbnail
-  // 3. course.featured_image
-  // 4. course.cover_image
-  // 5. fallback placeholder
-
   if (course.image) {
-    // If it's already a full URL, return as is
     if (course.image.startsWith('http')) {
       return course.image;
     }
-    // If it's a relative path, prepend your API base URL
     return `${axios.defaults.baseURL || ''}/storage/${course.image}`;
   }
 
@@ -550,12 +585,10 @@ const getCourseImage = (course) => {
       : `${axios.defaults.baseURL || ''}/storage/${course.cover_image}`;
   }
 
-  // Fallback to a placeholder image
   return `https://via.placeholder.com/400x300/6366f1/ffffff?text=${encodeURIComponent(course.title?.substring(0, 20) || 'Course')}`;
 };
 
 const handleImageError = (event) => {
-  // Set a fallback image when the original image fails to load
   event.target.src = `https://via.placeholder.com/400x300/6366f1/ffffff?text=${encodeURIComponent('Course Image')}`;
 };
 
@@ -584,7 +617,6 @@ const toggleWishlist = async (course) => {
     }
   } catch (error) {
     console.error('Error toggling wishlist:', error);
-    // You might want to show a toast notification here
   }
 };
 
@@ -599,9 +631,7 @@ const shareCourse = async (course) => {
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
-      // Fallback: copy to clipboard
       await navigator.clipboard.writeText(shareData.url);
-      // You might want to show a toast notification here
       console.log('Course URL copied to clipboard!');
     }
   } catch (error) {
@@ -613,7 +643,6 @@ const shareCourse = async (course) => {
 const fetchCategories = async () => {
   try {
     const { data } = await axios.get("/categories");
-    // Handle both direct array and nested data structure
     categories.value = Array.isArray(data) ? data : (data.data || []);
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -629,37 +658,31 @@ const fetchCourses = async (page = 1) => {
       page,
     };
 
-    // Add search parameter
     if (searchQuery.value && searchQuery.value.trim()) {
       params.search = searchQuery.value.trim();
     }
 
-    // Add category filters - send as array or single value based on your API
     if (selectedCategories.value.length > 0) {
-      params.categories = selectedCategories.value; // or 'category' if your API expects that
+      params.categories = selectedCategories.value;
     }
 
-    // Add level filters
     if (selectedLevels.value.length > 0) {
-      params.levels = selectedLevels.value; // or 'level' if your API expects that
+      params.levels = selectedLevels.value;
     }
 
-    // Add sort parameter
     if (sortBy.value && sortBy.value !== "latest") {
       params.sort = sortBy.value;
     }
 
-    console.log("Fetching courses with params:", params); // Debug log
+    console.log("Fetching courses with params:", params);
 
     const { data } = await axios.get("/courses", { params });
 
-    console.log("API Response:", data); // Debug log
+    console.log("API Response:", data);
 
-    // Handle your specific API response structure
     if (data.data && Array.isArray(data.data)) {
       courses.value = data.data;
 
-      // Handle pagination from your API structure
       if (data.pagination) {
         currentPage.value = data.pagination.current_page || page;
         lastPage.value = data.pagination.last_page || 1;
@@ -668,12 +691,10 @@ const fetchCourses = async (page = 1) => {
         lastPage.value = 1;
       }
     } else if (Array.isArray(data)) {
-      // Direct array response fallback
       courses.value = data;
       currentPage.value = page;
       lastPage.value = 1;
     } else {
-      // Fallback
       courses.value = [];
       currentPage.value = 1;
       lastPage.value = 1;
@@ -695,8 +716,6 @@ const resetFilters = () => {
   selectedLevels.value = [];
   sortBy.value = "latest";
   currentPage.value = 1;
-
-  // Manually trigger fetch after reset
   updateUrlAndFetch();
 };
 
@@ -704,7 +723,6 @@ const resetFilters = () => {
 watch(
   [searchQuery, selectedCategories, selectedLevels, sortBy],
   () => {
-    // Reset to page 1 when filters change
     currentPage.value = 1;
     updateUrlAndFetch();
   },
@@ -726,7 +744,6 @@ const updateUrlAndFetch = () => {
   if (sortBy.value !== "latest") query.sort = sortBy.value;
   if (currentPage.value > 1) query.page = currentPage.value;
 
-  // Update URL without page reload
   router.replace({ query });
   fetchCourses(currentPage.value);
 };
@@ -741,7 +758,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Additional styles for better description display */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -756,19 +772,16 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* Smooth transitions for interactive elements */
 .transition-colors {
   transition-property: color, background-color, border-color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
-/* Hover effects for course cards */
 .hover\:bg-gray-50:hover {
   background-color: rgb(249 250 251);
 }
 
-/* Image loading animation */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -782,7 +795,6 @@ onMounted(async () => {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -800,7 +812,6 @@ onMounted(async () => {
   background: #a1a1a1;
 }
 
-/* Responsive image container */
 .course-image-container {
   position: relative;
   overflow: hidden;
@@ -815,7 +826,6 @@ onMounted(async () => {
   transform: scale(1.05);
 }
 
-/* Badge animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -831,7 +841,6 @@ onMounted(async () => {
   animation: fadeInUp 0.3s ease-out;
 }
 
-/* Loading spinner enhancement */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -845,7 +854,6 @@ onMounted(async () => {
   animation: spin 1s linear infinite;
 }
 
-/* Enhanced button styles */
 button:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -855,7 +863,6 @@ button:focus-visible {
   box-shadow: 0 0 0 2px #4f46e5;
 }
 
-/* Improved card hover effects */
 .course-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -865,13 +872,11 @@ button:focus-visible {
   box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Price badge styling */
 .price-badge {
   backdrop-filter: blur(4px);
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-/* Responsive adjustments */
 @media (max-width: 640px) {
   .course-image-container {
     height: 200px;
@@ -897,7 +902,6 @@ button:focus-visible {
   }
 }
 
-/* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
   .course-image-container img {
     filter: brightness(0.9);

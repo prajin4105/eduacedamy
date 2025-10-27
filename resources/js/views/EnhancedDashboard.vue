@@ -4,13 +4,14 @@
     <div class="bg-indigo-600 text-white py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold">My Courses</h1>
-        <p class="mt-2 text-indigo-200">Welcome back, {{ user?.name || '' }}! Continue your learning journey.</p>
+        <p class="mt-2 text-indigo-200">
+          Welcome back, {{ user?.name || '' }}! Continue your learning journey.
+        </p>
       </div>
     </div>
 
     <!-- Dashboard Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
@@ -54,43 +55,54 @@
       <div class="mb-12">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">My Enrolled Courses</h2>
 
+        <!-- Loading Spinner -->
         <div v-if="loading" class="flex justify-center items-center py-12">
           <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
 
-        <div v-else-if="enrolledCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="enrollment in enrolledCourses" :key="enrollment.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <img :src="enrollment.course?.image_url || '/placeholder/300/200'" :alt="enrollment.course?.title || 'Course'" class="w-full h-48 object-cover" />
-            <div class="p-6">
-              <div class="flex items-center justify-between mb-2">
-                <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-sm font-medium">
+        <!-- Course Cards -->
+        <div
+          v-else-if="enrolledCourses.length > 0"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          <div
+            v-for="enrollment in enrolledCourses.slice(0, coursesToShow)"
+            :key="enrollment.id"
+            class="flex flex-col bg-white rounded-xl shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-lg"
+          >
+            <!-- Course Image -->
+            <img
+              :src="enrollment.course?.image_url || '/placeholder/300/200'"
+              :alt="enrollment.course?.title || 'Course'"
+              class="w-full h-48 object-cover"
+            />
+
+            <!-- Course Details -->
+            <div class="flex flex-col flex-1 p-6">
+              <div class="flex items-center justify-between mb-3">
+                <span
+                  class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium"
+                >
                   {{ enrollment.course?.level || 'All Levels' }}
                 </span>
-                    <!-- <span :class="getStatusClass(enrollment.status)" class="px-2 py-1 rounded-full text-sm font-medium">
-                    {{ formatStatus(enrollment.status) }}
-                    </span> -->
-              </div>
-
-              <h3 class="text-xl font-semibold mb-2">{{ enrollment.course?.title || 'Untitled Course' }}</h3>
-              <p class="text-gray-600 mb-4">{{ enrollment.course?.excerpt || 'No description available' }}</p>
-
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                  <img :src="getInstructorAvatar(enrollment.course?.instructor)"
-                       :alt="enrollment.course?.instructor?.name || 'Instructor'"
-                       class="w-8 h-8 rounded-full mr-3" />
-                  <span class="text-sm text-gray-700">{{ enrollment.course?.instructor?.name || 'Unknown Instructor' }}</span>
-                </div>
                 <span class="text-sm text-gray-500">
                   Enrolled: {{ formatDate(enrollment.enrolled_at) }}
                 </span>
               </div>
 
-              <!-- Fixed Progress Bar Section -->
-              <div class="mb-4">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm font-medium text-gray-700">Course Progress</span>
-                  <span class="text-sm font-medium text-gray-900">{{ getProgressPercentage(enrollment) }}%</span>
+              <!-- Course Title (one line only) -->
+              <h3
+                class="text-lg font-semibold text-gray-900 truncate"
+                :title="enrollment.course?.title"
+              >
+                {{ enrollment.course?.title || 'Untitled Course' }}
+              </h3>
+
+              <!-- Progress Bar -->
+              <div class="mt-5">
+                <div class="flex justify-between text-sm mb-1">
+                  <span class="text-gray-700 font-medium">Progress</span>
+                  <span class="font-semibold">{{ getProgressPercentage(enrollment) }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-3">
                   <div
@@ -103,83 +115,57 @@
                     :style="{ width: getProgressPercentage(enrollment) + '%' }"
                   ></div>
                 </div>
-                <div class="mt-2 flex justify-between text-sm text-gray-600">
-                  <span v-if="enrollment.course?.duration_in_minutes">
-                    Duration: {{ Math.floor(enrollment.course.duration_in_minutes / 60) }}h {{ enrollment.course.duration_in_minutes % 60 }}m
-                  </span>
-                  <span v-if="enrollment.last_accessed_at">
-                    Last accessed: {{ formatDate(enrollment.last_accessed_at) }}
-                  </span>
-                </div>
-
-                <!-- Completion badge -->
-
               </div>
 
-              <div class="flex gap-2">
+              <!-- Action Button -->
+              <div class="mt-6">
                 <router-link
                   v-if="enrollment.course?.slug"
                   :to="`/course/${enrollment.course.slug}`"
-                  class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-center"
+                  class="block text-center bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
                 >
-                  {{ enrollment.status === 'completed' ? 'Go To course' : 'Continue Learning' }}
+                  {{ enrollment.status === 'completed' ? 'Go to Course' : 'Continue Learning' }}
                 </router-link>
                 <button
                   v-else
                   disabled
-                  class="flex-1 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed text-center"
+                  class="w-full bg-gray-300 text-gray-600 px-5 py-2.5 rounded-lg font-medium cursor-not-allowed"
                 >
                   Course Unavailable
                 </button>
               </div>
             </div>
           </div>
+
+          <!-- Load More Button -->
+          <div
+            v-if="enrolledCourses.length > coursesToShow"
+            class="flex justify-center mt-10 col-span-full"
+          >
+            <button
+              @click="loadMoreCourses"
+              class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition"
+            >
+              Load More
+            </button>
+          </div>
         </div>
 
+        <!-- No Courses -->
         <div v-else class="text-center py-12">
           <i class="fas fa-graduation-cap text-gray-400 text-6xl mb-4"></i>
           <h3 class="text-xl font-semibold text-gray-600 mb-2">No enrolled courses yet</h3>
-          <p class="text-gray-500 mb-6">Start your learning journey by enrolling in a course</p>
-          <router-link to="/courses" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700">
+          <p class="text-gray-500 mb-6">
+            Start your learning journey by enrolling in a course
+          </p>
+          <router-link
+            to="/courses"
+            class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700"
+          >
             Browse Courses
           </router-link>
         </div>
       </div>
-
-      <!-- Recommended Courses -->
-      <!-- <div v-if="!loading && availableCourses.length > 0">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">Recommended Courses</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="course in availableCourses" :key="course.id" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <img :src="course.image || '/placeholder/300/200'" :alt="course.title" class="w-full h-40 object-cover" />
-            <div class="p-4">
-              <h3 class="text-lg font-semibold mb-2">{{ course.title }}</h3>
-              <p class="text-gray-600 text-sm mb-3">{{ course.excerpt }}</p>
-
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-sm text-gray-500">
-                  <i class="fas fa-user"></i> {{ course.instructor?.name }}
-                </span>
-                <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs">
-                  {{ course.level }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-lg font-bold text-green-600">${{ course.price }}</span>
-                <button
-                  @click="buyCourse(course)"
-                  :disabled="purchasing"
-                  class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {{ purchasing ? 'Processing...' : 'Enroll Now' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> -->
     </div>
 
     <!-- Messages -->
@@ -198,6 +184,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+const coursesToShow = ref(6); // initially show 6
+const loadStep = 3; // show 3 more each time
+
 
 const router = useRouter();
 const user = ref(null);
@@ -218,6 +207,9 @@ const statistics = ref({
   completion_rate: 0,
   total_time_spent_seconds: 0
 });
+const loadMoreCourses = () => {
+  coursesToShow.value += loadStep;
+};
 
 // Simplified Progress Percentage Function (perfect for your API structure)
 const getProgressPercentage = (enrollment) => {
@@ -531,7 +523,7 @@ const showMessage = (msg, type = 'success') => {
     message.value = '';
   }, 5000);
 };
-    
+
 // Debug function
 const debugProgressData = () => {
   console.log('=== PROGRESS DEBUG ===');

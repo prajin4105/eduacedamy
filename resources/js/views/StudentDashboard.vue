@@ -80,7 +80,10 @@
           <div>
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-xl font-semibold text-gray-800">Available Courses</h3>
-              <router-link to="/courses" class="text-blue-600 hover:underline">View All Courses</router-link>
+              <div class="space-x-4">
+                <router-link to="/courses" class="text-blue-600 hover:underline">View All Courses</router-link>
+                <router-link to="/subscriptions" class="text-indigo-600 hover:underline">My Subscriptions</router-link>
+              </div>
             </div>
 
             <div v-if="availableCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

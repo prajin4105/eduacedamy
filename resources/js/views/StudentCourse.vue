@@ -20,8 +20,8 @@
       </div>
     </div>
 
-    <!-- Not Enrolled State -->
-    <div v-else-if="course && !isEnrolled" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Not Accessible State (neither enrolled nor subscribed) -->
+    <div v-else-if="course && !canAccess" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6 text-center">
           <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
@@ -29,8 +29,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900 mb-2">Enrollment Required</h1>
-          <p class="text-lg text-gray-600 mb-6">You need to enroll in this course to access the content.</p>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">Access Required</h1>
+          <p class="text-lg text-gray-600 mb-6">Enroll in this course or subscribe to an eligible plan to access the content.</p>
 
           <div class="bg-gray-50 rounded-lg p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ course.title }}</h2>
@@ -87,8 +87,8 @@
       </div>
     </div>
 
-    <!-- Course Overview (Only shown if enrolled) -->
-    <div v-else-if="course && isEnrolled" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Course Overview (Shown if enrolled or has subscription access) -->
+    <div v-else-if="course && canAccess" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Course Header -->
       <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:px-6">
@@ -142,15 +142,27 @@
                   </svg>
                   Course Completed
                 </span>
-                <button
-                  @click="downloadCertificate"
-                  :disabled="downloadingCertificate"
-                  class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <i v-if="downloadingCertificate" class="fas fa-spinner fa-spin mr-1"></i>
-                  <i v-else class="fas fa-certificate mr-1"></i>
-                  {{ downloadingCertificate ? 'Generating...' : 'Download Certificate' }}
-                </button>
+                <div class="flex space-x-2">
+                  <button
+                    v-if="hasTest && !testPassed"
+                    @click="startTest"
+                    class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Take Test
+                  </button>
+                  <button
+                    @click="downloadCertificate"
+                    :disabled="downloadingCertificate"
+                    class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <i v-if="downloadingCertificate" class="fas fa-spinner fa-spin mr-1"></i>
+                    <i v-else class="fas fa-certificate mr-1"></i>
+                    {{ downloadingCertificate ? 'Generating...' : 'Download Certificate' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -257,6 +269,9 @@ const progress = ref(null);
 const timeSpent = ref(0);
 const enrollmentStatus = ref(null); // Added to track enrollment status
 const downloadingCertificate = ref(false);
+const hasTest = ref(false);
+const testPassed = ref(false);
+const testData = ref(null);
 
 // Track failed thumbnails
 const failedThumbnails = ref(new Set());
@@ -289,6 +304,17 @@ const isEnrolled = computed(() => {
   }
   if (progress.value && Object.keys(progress.value).length > 0) {
     return true; // If we have progress data, user must be enrolled
+  }
+  return false;
+});
+
+// New: backend exposes can_access when user has subscription access
+const canAccess = computed(() => {
+  if (!course.value) return false;
+  if (isEnrolled.value) return true;
+  // Prefer explicit backend flag when available
+  if (typeof course.value.can_access !== 'undefined') {
+    return Boolean(course.value.can_access);
   }
   return false;
 });
@@ -371,8 +397,8 @@ const fetchCourseData = async () => {
     // Check enrollment status first
     await checkEnrollmentStatus();
 
-    // Only fetch progress if user is enrolled
-    if (isEnrolled.value) {
+    // Only fetch progress if user can access (enrolled or subscribed)
+    if (canAccess.value) {
       await fetchProgress();
       syncProgressFromStorage();
     } else {
@@ -653,10 +679,50 @@ const downloadCertificate = async () => {
   }
 };
 
+// Test-related methods
+const checkTestAvailability = async () => {
+  if (!course.value?.id) return;
+
+  try {
+    const response = await axios.get(`/api/courses/${course.value.id}/test`);
+    if (response.data.success) {
+      hasTest.value = true;
+      testData.value = response.data.data;
+    }
+  } catch (error) {
+    console.log('No test available for this course');
+    hasTest.value = false;
+  }
+};
+
+const checkTestStatus = async () => {
+  if (!course.value?.id) return;
+
+  try {
+    const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
+    if (response.data.success) {
+      const attempts = response.data.data.attempts;
+      testPassed.value = attempts.some(attempt => attempt.is_passed);
+    }
+  } catch (error) {
+    console.log('Error checking test status:', error);
+  }
+};
+
+const startTest = () => {
+  router.push(`/student/course/${course.value.id}/test`);
+};
+
 // Initialize
-onMounted(() => {
-  fetchCourseData();
+onMounted(async () => {
+  await fetchCourseData();
   window.addEventListener('storage', handleStorageChange);
+
+  // Check test availability and status after course data is loaded
+  if (course.value?.id) {
+    await checkTestAvailability();
+    await checkTestStatus();
+  }
 });
 
 // Cleanup on unmount

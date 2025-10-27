@@ -17,7 +17,7 @@ class CourseController extends Controller
  public function index(Request $request)
 {
     $query = Course::with([
-        'instructor:id,name,profile_photo_path',
+        'instructor:id,name',
         'categories:id,name,slug',
         'enrollments',
         'videos'
@@ -73,7 +73,7 @@ class CourseController extends Controller
     // Sorting
     $sortBy = $request->get('sort', 'newest');
     switch ($sortBy) {
-        case 'newest':
+        case 'newest':  
             $query->latest('published_at');
             break;
         case 'oldest':
@@ -135,16 +135,19 @@ class CourseController extends Controller
             'lessons_count' => $course->videos_count,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
+            'requires_subscription' => $course->plans()->exists(),
+            'can_access' => $request->user() ? $request->user()->canAccessCourse($course) : false,
             'is_wishlisted' => in_array((int)$course->id, $wishlistIds),
             'wishlist_count' => (int) ($course->wishlist_count ?? 0),
-            'videos' => $course->videos->map(function ($video) {
+            'videos' => $course->videos->map(function ($video) use ($course) {
+                $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
                 return [
                     'id' => $video->id,
                     'title' => $video->title,
                     'description' => $video->description,
                     'duration_in_seconds' => $video->duration_seconds,
                     'sort_order' => $video->sort_order,
-                    'video_url' => $video->video_url,
+                    'video_url' => $canAccess ? $video->video_url : null,
                     'thumbnail_url' => $video->thumbnail_url,
                 ];
             }),
@@ -166,7 +169,7 @@ class CourseController extends Controller
 
     public function show($slug)
     {
-        $course = Course::with(['instructor', 'videos', 'enrollments', 'wishlistedBy'])
+        $course = Course::with(['instructor', 'videos', 'enrollments', 'wishlistedBy', 'plans'])
             ->where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
@@ -191,6 +194,18 @@ class CourseController extends Controller
             'slug' => $course->slug,
             'description' => $course->description,
             'price' => (float) $course->price,
+            'requires_subscription' => $course->requiresSubscription(),
+            'available_plans' => $course->plans->map(function ($plan) {
+                return [
+                    'id' => $plan->id,
+                    'name' => $plan->name,
+                    'slug' => $plan->slug,
+                    'price' => (float) $plan->price,
+                    'currency' => $plan->currency,
+                    'interval' => $plan->interval,
+                    'interval_count' => $plan->interval_count,
+                ];
+            }),
             'image' => $course->image ? asset('storage/' . $course->image) : null,
             'level' => $course->level,
             'language' => $course->language,
@@ -204,14 +219,15 @@ class CourseController extends Controller
                 'name' => $course->instructor->name,
                 'email' => $course->instructor->email,
             ],
-            'videos' => $course->videos->map(function ($video) {
+            'videos' => $course->videos->map(function ($video) use ($course) {
+                $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
                 return [
                     'id' => $video->id,
                     'title' => $video->title,
                     'description' => $video->description,
                     'duration_in_seconds' => $video->duration_seconds,
                     'sort_order' => $video->sort_order,
-                    'video_url' => $video->video_url,
+                    'video_url' => $canAccess ? $video->video_url : null,
                     'thumbnail_url' => $video->thumbnail_url,
                 ];
             }),
@@ -222,6 +238,8 @@ class CourseController extends Controller
             'is_wishlisted' => Auth::check() ? $course->wishlistedBy()->where('user_id', Auth::id())->exists() : false,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
+            'requires_subscription' => $course->plans()->exists(),
+            'can_access' => Auth::check() ? Auth::user()->canAccessCourse($course) : false,
         ]);
     }
 

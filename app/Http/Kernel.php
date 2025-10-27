@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\RedirectIfNotAdmin::class,
         'instructor' => \App\Http\Middleware\RedirectIfNotInstructor::class,
         'student' => \App\Http\Middleware\RedirectIfNotStudent::class,
+        'subscribed' => \App\Http\Middleware\EnsureSubscriptionIsActive::class,
     ];
 }

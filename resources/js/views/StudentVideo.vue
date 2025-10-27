@@ -29,16 +29,16 @@
       </div>
     </div>
 
-    <!-- Not Enrolled State -->
-    <div v-else-if="course && !isEnrolled" class="max-w-3xl mx-auto mt-12 bg-white rounded-lg shadow-md p-6">
+    <!-- Not Accessible State -->
+    <div v-else-if="course && !canAccess" class="max-w-3xl mx-auto mt-12 bg-white rounded-lg shadow-md p-6">
       <div class="text-center">
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
           <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
           </svg>
         </div>
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">You are not enrolled in this course</h2>
-        <p class="text-gray-600 mb-6">Please enroll in the course to access the video content.</p>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Access required</h2>
+        <p class="text-gray-600 mb-6">Please enroll or subscribe to an eligible plan to access the video content.</p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             @click="goToCourse"
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Video Content with New Layout -->
-    <div v-else-if="course && video && isEnrolled">
+    <div v-else-if="course && video && canAccess">
 
       <!-- Header with Course Info -->
       <div class="bg-white shadow-sm border-b">
@@ -105,6 +105,32 @@
             <h3 class="text-sm font-medium text-green-800">Video Completed!</h3>
             <p class="mt-1 text-sm text-green-700">Great job! You've completed this video. Your progress has been saved.</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Course Completion Notification with Test -->
+      <div v-if="progress?.is_completed && hasTest && !testPassed" class="mx-4 mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800">All Videos Completed!</h3>
+              <p class="mt-1 text-sm text-blue-700">You've completed all videos. Take the final test to earn your certificate.</p>
+            </div>
+          </div>
+          <button
+            @click="startTest"
+            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Take Test
+          </button>
         </div>
       </div>
 
@@ -330,9 +356,15 @@ const videoPlayer = ref(null);
 const progress = ref(null);
 const isVideoCompleted = ref(false);
 const isEnrolled = ref(false);
+const canAccess = ref(false);
 const timeWatched = ref(0);
 const videoDuration = ref(0);
 const completionThreshold = 0.9; // 90% watched to mark as completed
+
+// Test-related variables
+const hasTest = ref(false);
+const testPassed = ref(false);
+const testData = ref(null);
 
 // Track failed thumbnails to prevent repeated attempts
 const failedThumbnails = ref(new Set());
@@ -571,11 +603,17 @@ const fetchData = async () => {
     // 2. Check enrollment status
     const enrolled = await checkEnrollmentStatus();
     isEnrolled.value = enrolled;
+    // derive access from backend flag if present
+    if (typeof course.value.can_access !== 'undefined') {
+      canAccess.value = Boolean(course.value.can_access || enrolled);
+    } else {
+      canAccess.value = enrolled;
+    }
 
-    console.log('Enrollment status:', enrolled);
+    console.log('Enrollment status:', enrolled, 'canAccess:', canAccess.value);
 
     // 3. If enrolled, fetch progress data
-    if (enrolled) {
+    if (canAccess.value) {
       await fetchCourseProgress();
     } else {
       console.log('User not enrolled, skipping progress fetch');
@@ -843,6 +881,48 @@ watch(() => route.params.videoId, async (newVideoId, oldVideoId) => {
   }
 });
 
+// Test-related methods
+const checkTestAvailability = async () => {
+  if (!course.value?.id) return;
+
+  try {
+    const response = await axios.get(`/courses/${course.value.id}/test`);
+    if (response.data.success) {
+      hasTest.value = true;
+      testData.value = response.data.data;
+    }
+  } catch (error) {
+    console.log('No test available for this course');
+    hasTest.value = false;
+  }
+};
+
+const checkTestStatus = async () => {
+  if (!course.value?.id) return;
+
+  try {
+    const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
+    if (response.data.success) {
+      const attempts = response.data.data.attempts;
+      testPassed.value = attempts.some(attempt => attempt.is_passed);
+    }
+  } catch (error) {
+    console.log('Error checking test status:', error);
+  }
+};
+
+const startTest = () => {
+  router.push(`/student/course/${course.value.id}/test`);
+};
+
 // Initialize
-onMounted(fetchData);
+onMounted(async () => {
+  await fetchData();
+
+  // Check test availability and status after data is loaded
+  if (course.value?.id) {
+    await checkTestAvailability();
+    await checkTestStatus();
+  }
+});
 </script>

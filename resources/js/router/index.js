@@ -10,12 +10,32 @@ import StudentVideo from '../views/StudentVideo.vue';
 import Login from '../views/Login.vue';
 import NotFound from '../views/NotFound.vue';
 import axios from 'axios';
+import Pricing from '../views/Pricing.vue';
+import PlanDetail from '../views/PlanDetail.vue';
+import MySubscriptions from '../views/MySubscriptions.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home
+  },
+  {
+    path: '/pricing',
+    name: 'Pricing',
+    component: Pricing
+  },
+  {
+    path: '/pricing/:slug',
+    name: 'PlanDetail',
+    component: PlanDetail,
+    props: true
+  },
+  {
+    path: '/subscriptions',
+    name: 'MySubscriptions',
+    component: MySubscriptions,
+    meta: { requiresAuth: true }
   },
   {
     path: '/courses',
@@ -33,6 +53,15 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: { guest: true }
+  },
+    {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/ForgotPassword.vue'),
+    meta: {
+      guest: true,
+      title: 'Forgot Password - EduAcademy'
+    }
   },
   {
     path: '/dashboard',

@@ -24,6 +24,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'otp',              // Add this
+        'otp_expires_at',
     ];
 
     /**
@@ -34,6 +36,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+
+        'otp',
+
     ];
 
     /**
@@ -46,7 +51,54 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'otp_expires_at' => 'datetime',     
         ];
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->latest('starts_at');
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->activeSubscription()->exists();
+    }
+
+    public function canAccessCourse(Course $course): bool
+    {
+        // Always allow if user has completed/purchased enrollment
+        $hasCompletedEnrollment = $this->enrollments()
+            ->where('course_id', $course->id)
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($hasCompletedEnrollment) {
+            return true;
+        }
+
+        // If the course is tied to any plan, require active subscription to one of those plans
+        $coursePlanIds = $course->plans()->pluck('plans.id');
+        if ($coursePlanIds->isEmpty()) {
+            return false; // Course requires purchase and no enrollment found
+        }
+
+        $activeSub = $this->activeSubscription()->first();
+        if (!$activeSub) {
+            return false;
+        }
+
+        return $coursePlanIds->contains($activeSub->plan_id);
     }
 
     public function enrollments(): HasMany

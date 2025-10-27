@@ -11,6 +11,7 @@ use App\Models\Course;
 use App\Models\Video;
 use App\Models\Enrollment;
 use App\Models\Review;
+use App\Models\Plan;
 
 class DemoDataSeeder extends Seeder
 {
@@ -155,7 +156,7 @@ class DemoDataSeeder extends Seeder
                     ['user_id' => $std->id, 'course_id' => $course->id],
                     [
                         'amount_paid' => $course->price,
-                        'status' => collect(['completed', 'in_progress', 'started'])->random(),
+                        'status' => collect(['pending', 'completed', 'cancelled'])->random(),
                         'progress_percentage' => rand(0, 100),
                         'enrolled_at' => now()->subDays(rand(1, 365)),
             ]

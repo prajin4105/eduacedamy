@@ -7,7 +7,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-
 use Filament\Tables\Filters\SelectFilter;
 
 class StudentsTable
@@ -24,26 +23,14 @@ class StudentsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('role')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'student' => 'primary',
-                        'instructor' => 'success',
-                        'admin' => 'danger',
-                    })
-                    ->sortable(),
 
-                TextColumn::make('user.enrollments_count')
+
+                TextColumn::make('enrollments_count')
                     ->label('Enrolled Courses')
-                    ->state(function ($record) {
-                        return $record->user?->enrollments()->count() ?? 0;
-                    })
+                    ->counts('enrollments')
                     ->sortable(),
 
-                TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(),
+                
 
                 TextColumn::make('created_at')
                     ->dateTime()
