@@ -14,162 +14,200 @@ class CourseController extends Controller
     /**
      * Display a listing of courses with filters and pagination.
      */
- public function index(Request $request)
-{
-    $query = Course::with([
-        'instructor:id,name',
-        'categories:id,name,slug',
-        'enrollments',
-        'videos'
-    ])
-    ->withCount(['enrollments', 'videos', 'wishlistedBy as wishlist_count'])
-    ->where('is_published', true);
+    public function index(Request $request)
+    {
+        $query = Course::with([
+            'instructor:id,name,profile_photo_path',
+            'categories:id,name,slug',
+            'videos:id,course_id,title,description,duration_seconds,sort_order,thumbnail_url'
+        ])
+        ->withCount(['enrollments', 'videos', 'wishlistedBy as wishlist_count'])
+        ->where('is_published', true);
 
-    // Search filter
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function ($q) use ($search) {
-            $q->where('title', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhereHas('instructor', function ($instructorQuery) use ($search) {
-                  $instructorQuery->where('name', 'like', "%{$search}%");
-              });
-        });
-    }
+        // 🔍 Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('instructor', function ($instructorQuery) use ($search) {
+                      $instructorQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-    // Category filter
-    if ($request->has('categories')) {
-        $categoryIds = is_array($request->categories)
-            ? $request->categories
-            : explode(',', $request->categories);
+        // 🏷️ Category filter
+        if ($request->has('categories')) {
+            $categoryIds = is_array($request->categories)
+                ? $request->categories
+                : explode(',', $request->categories);
 
-        $query->whereHas('categories', function ($q) use ($categoryIds) {
-            $q->whereIn('categories.id', $categoryIds);
-        }, '>=', count($categoryIds));
-    }
-
-    // Level filter
-    if ($request->has('levels')) {
-        $levels = is_array($request->levels)
-            ? $request->levels
-            : explode(',', $request->levels);
-
-        $query->whereIn('level', $levels);
-    }
-
-    // Instructor filter
-    if ($request->filled('instructor')) {
-        $query->where('instructor_id', $request->instructor);
-    }
-
-    // Price filters
-    if ($request->has('min_price')) {
-        $query->where('price', '>=', $request->min_price);
-    }
-    if ($request->has('max_price')) {
-        $query->where('price', '<=', $request->max_price);
-    }
-
-    // Sorting
-    $sortBy = $request->get('sort', 'newest');
-    switch ($sortBy) {
-        case 'newest':  
-            $query->latest('published_at');
-            break;
-        case 'oldest':
-            $query->oldest('published_at');
-            break;
-        case 'price_asc':
-            $query->orderBy('price', 'asc');
-            break;
-        case 'price_desc':
-            $query->orderBy('price', 'desc');
-            break;
-        case 'popular':
-            $query->orderBy('enrollments_count', 'desc');
-            break;
-        default:
-            $query->latest('published_at');
-    }
-
-    // Pagination
-    $perPage = min($request->get('per_page', 12), 50);
-    $page = $request->get('page', 1);
-    $paginator = $query->paginate($perPage, ['*'], 'page', $page);
-
-    // Fetch wishlist IDs once for the authenticated user
-    $wishlistIds = $request->user()
-        ? $request->user()->wishlist()->pluck('course_id')->map(fn($id) => (int)$id)->toArray()
-        : [];
-
-    // Transform response
-    $courses = $paginator->getCollection()->map(function ($course) use ($request, $wishlistIds) {
-        $enrollmentStatus = null;
-        $isEnrolled = false;
-
-        if ($request->user()) {
-            $enrollment = $course->enrollments()
-                ->where('user_id', $request->user()->id)
-                ->first();
-
-            if ($enrollment) {
-                $isEnrolled = true;
-                $enrollmentStatus = $enrollment->status;
+            foreach ($categoryIds as $categoryId) {
+                $query->whereHas('categories', function ($q) use ($categoryId) {
+                    $q->where('categories.id', $categoryId);
+                });
             }
         }
 
-        return [
-            'id' => $course->id,
-            'title' => $course->title,
-            'slug' => $course->slug,
-            'description' => $course->description,
-            'price' => $course->price,
-            'image' => $course->image ? asset('storage/' . $course->image) : null,
-            'level' => $course->level,
-            'duration' => $course->duration,
-            'instructor' => $course->instructor->only(['id', 'name', 'profile_photo_path']),
-            'categories' => $course->categories->map->only(['id', 'name', 'slug']),
-            'enrollments_count' => $course->enrollments_count,
-            'rating' => (float) $course->average_rating,
-            'reviews_count' => (int) $course->reviews_count,
-            'lessons_count' => $course->videos_count,
-            'is_enrolled' => $isEnrolled,
-            'enrollment_status' => $enrollmentStatus,
-            'requires_subscription' => $course->plans()->exists(),
-            'can_access' => $request->user() ? $request->user()->canAccessCourse($course) : false,
-            'is_wishlisted' => in_array((int)$course->id, $wishlistIds),
-            'wishlist_count' => (int) ($course->wishlist_count ?? 0),
-            'videos' => $course->videos->map(function ($video) use ($course) {
-                $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
-                return [
-                    'id' => $video->id,
-                    'title' => $video->title,
-                    'description' => $video->description,
-                    'duration_in_seconds' => $video->duration_seconds,
-                    'sort_order' => $video->sort_order,
-                    'video_url' => $canAccess ? $video->video_url : null,
-                    'thumbnail_url' => $video->thumbnail_url,
-                ];
-            }),
-        ];
-    });
+        // 📊 Level filter
+        if ($request->has('levels')) {
+            $levels = is_array($request->levels)
+                ? $request->levels
+                : explode(',', $request->levels);
 
-    // Return final JSON response
-    return response()->json([
-        'data' => $courses,
-        'pagination' => [
-            'total' => $paginator->total(),
-            'per_page' => $paginator->perPage(),
-            'current_page' => $paginator->currentPage(),
-            'last_page' => $paginator->lastPage(),
-        ]
-    ]);
-}
+            $query->whereIn('level', $levels);
+        }
 
+        // 👨 Instructor filter
+        if ($request->filled('instructor')) {
+            $query->where('instructor_id', $request->instructor);
+        }
+
+        // 💰 Price filters
+        if ($request->has('min_price')) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->has('max_price')) {
+            $query->where('price', '<=', $request->max_price);
+        }
+
+        // 🧩 Subscription type filter - FIXED TO HANDLE MULTIPLE TYPES
+        $types = $request->get('type', $request->get('types', []));
+
+        // Convert to array if it's a string
+        if (!is_array($types)) {
+            $types = explode(',', $types);
+        }
+
+        // Filter out empty values
+        $types = array_filter($types);
+
+        if (!empty($types)) {
+            $wantSubscription = in_array('subscription', $types);
+            $wantRegular = in_array('regular', $types);
+
+            if ($wantSubscription && !$wantRegular) {
+                // Only subscription courses
+                $query->whereHas('plans');
+            } elseif ($wantRegular && !$wantSubscription) {
+                // Only regular (non-subscription) courses
+                $query->whereDoesntHave('plans');
+            }
+            // If both are selected, don't filter (show all)
+        }
+
+        // 🧭 Sorting
+        $sortBy = $request->get('sort', 'latest');
+        switch ($sortBy) {
+            case 'latest':
+            case 'newest':
+                $query->latest('published_at');
+                break;
+            case 'oldest':
+                $query->oldest('published_at');
+                break;
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'popular':
+                $query->orderBy('enrollments_count', 'desc');
+                break;
+            case 'rating':
+                $query->orderBy('average_rating', 'desc');
+                break;
+            default:
+                $query->latest('published_at');
+                break;
+        }
+
+        // 📄 Pagination
+        $perPage = min($request->get('per_page', 12), 50);
+        $paginator = $query->paginate($perPage);
+
+        // 💖 Wishlist IDs for logged-in user
+        $wishlistIds = $request->user()
+            ? $request->user()->wishlist()->pluck('course_id')->map(fn($id) => (int)$id)->toArray()
+            : [];
+
+        $user = $request->user();
+
+        // 🧱 Transform data
+        $courses = $paginator->getCollection()->map(function ($course) use ($user, $wishlistIds) {
+            $isEnrolled = false;
+            $enrollmentStatus = null;
+
+            if ($user) {
+                $enrollment = $course->enrollments()
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if ($enrollment) {
+                    $isEnrolled = true;
+                    $enrollmentStatus = $enrollment->status;
+                }
+            }
+
+            $canAccess = $user ? $user->canAccessCourse($course) : false;
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'slug' => $course->slug,
+                'description' => $course->description,
+                'price' => $course->price,
+                'image' => $course->image ? asset('storage/' . $course->image) : null,
+                'level' => $course->level,
+                'duration' => $course->duration,
+                'instructor' => $course->instructor->only(['id', 'name', 'profile_photo_path']),
+                'categories' => $course->categories->map->only(['id', 'name', 'slug']),
+                'enrollments_count' => $course->enrollments_count,
+                'rating' => (float) $course->average_rating,
+                'reviews_count' => (int) $course->reviews_count,
+                'lessons_count' => $course->videos_count,
+                'is_enrolled' => $isEnrolled,
+                'enrollment_status' => $enrollmentStatus,
+                'requires_subscription' => $course->relationLoaded('plans') ? $course->plans->isNotEmpty() : $course->plans()->exists(),
+                'can_access' => $canAccess,
+                'is_wishlisted' => in_array((int)$course->id, $wishlistIds),
+                'wishlist_count' => (int) ($course->wishlist_count ?? 0),
+                'videos' => $course->videos->map(function ($video) use ($canAccess) {
+                    return [
+                        'id' => $video->id,
+                        'title' => $video->title,
+                        'description' => $video->description,
+                        'duration_in_seconds' => $video->duration_seconds,
+                        'sort_order' => $video->sort_order,
+                        'video_url' => $canAccess ? $video->video_url : null,
+                        'thumbnail_url' => $video->thumbnail_url,
+                    ];
+                }),
+            ];
+        });
+
+        // 📤 Final response
+        return response()->json([
+            'data' => $courses,
+            'pagination' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ]
+        ]);
+    }
 
     public function show($slug)
     {
-        $course = Course::with(['instructor', 'videos', 'enrollments', 'wishlistedBy', 'plans'])
+        $course = Course::with(['instructor', 'videos', 'plans'])
+            ->withCount([
+                'enrollments as completed_enrollments_count' => function ($query) {
+                    $query->where('status', 'completed');
+                },
+                'wishlistedBy as wishlist_count'
+            ])
             ->where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
@@ -188,13 +226,15 @@ class CourseController extends Controller
             }
         }
 
+        $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
+
         return response()->json([
             'id' => $course->id,
             'title' => $course->title,
             'slug' => $course->slug,
             'description' => $course->description,
             'price' => (float) $course->price,
-            'requires_subscription' => $course->requiresSubscription(),
+            'requires_subscription' => $course->plans->isNotEmpty(),
             'available_plans' => $course->plans->map(function ($plan) {
                 return [
                     'id' => $plan->id,
@@ -219,8 +259,7 @@ class CourseController extends Controller
                 'name' => $course->instructor->name,
                 'email' => $course->instructor->email,
             ],
-            'videos' => $course->videos->map(function ($video) use ($course) {
-                $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
+            'videos' => $course->videos->map(function ($video) use ($canAccess) {
                 return [
                     'id' => $video->id,
                     'title' => $video->title,
@@ -231,32 +270,31 @@ class CourseController extends Controller
                     'thumbnail_url' => $video->thumbnail_url,
                 ];
             }),
-            'enrollments_count' => $course->enrollments->where('status', 'completed')->count(),
+            'enrollments_count' => $course->completed_enrollments_count,
             'rating' => (float) $course->average_rating,
             'reviews_count' => (int) $course->reviews_count,
-            'wishlist_count' => (int) $course->wishlistedBy()->count(),
+            'wishlist_count' => (int) $course->wishlist_count,
             'is_wishlisted' => Auth::check() ? $course->wishlistedBy()->where('user_id', Auth::id())->exists() : false,
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
-            'requires_subscription' => $course->plans()->exists(),
-            'can_access' => Auth::check() ? Auth::user()->canAccessCourse($course) : false,
+            'can_access' => $canAccess,
         ]);
     }
 
     public function instructors()
     {
         $instructors = User::where('role', 'instructor')
-            ->withCount(['enrolledCourses' => function($query) {
+            ->withCount(['courses' => function($query) {
                 $query->where('is_published', true);
             }])
-            ->having('enrolled_courses_count', '>', 0)
+            ->having('courses_count', '>', 0)
             ->get()
             ->map(function ($instructor) {
                 return [
                     'id' => $instructor->id,
                     'name' => $instructor->name,
                     'email' => $instructor->email,
-                    'courses_count' => $instructor->enrolled_courses_count,
+                    'courses_count' => $instructor->courses_count,
                 ];
             });
 
@@ -279,3 +317,4 @@ class CourseController extends Controller
         return response()->json($levels->values());
     }
 }
+`

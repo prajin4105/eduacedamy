@@ -121,10 +121,13 @@
                 <!-- Signatures -->
                 <div class="signatures">
                     <div class="signature-block">
+                        <img src="{{ public_path('images/s.png') }}" alt="Signature 1" style="width:150px; height:auto; margin-bottom:5px;">
                         <p class="signature-line"></p>
                         <p class="signer-title">Head Instructor</p>
                     </div>
                     <div class="signature-block">
+                        <img src="{{ public_path('images/s2.png') }}" alt="Signature 1" style="width:150px; height:auto; margin-bottom:5px;">
+
                         <p class="signature-line"></p>
                         <p class="signer-title">Director of Education</p>
                     </div>

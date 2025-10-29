@@ -410,7 +410,7 @@ const getCourseButtonText = (course) => {
 const getCourseButtonClass = (course) => {
   if (isEnrolled(course.id)) {
     return 'bg-green-100 text-green-800';
-  }
+  } 
 
   if (course.requires_subscription || course.available_plans?.length > 0) {
     return 'bg-purple-600 text-white hover:bg-purple-700';

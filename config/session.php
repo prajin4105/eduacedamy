@@ -6,9 +6,11 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => (int) env('SESSION_LIFETIME', 1),
 
-    'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+    // 'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+    'expire_on_close' => true,
+
 
     'encrypt' => env('SESSION_ENCRYPT', false),
 

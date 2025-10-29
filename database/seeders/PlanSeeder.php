@@ -84,19 +84,12 @@ class PlanSeeder extends Seeder
         $team = Plan::where('slug', 'team')->first();
 
         // Basic: first 20% of courses
-        if ($basic) {
-            $basicIds = array_slice($allCourses, 0, max(1, (int) floor(count($allCourses) * 0.2)));
-            $basic->courses()->syncWithoutDetaching($basicIds);
-        }
 
         // Standard: first 60% of courses
-        if ($standard) {
-            $standardIds = array_slice($allCourses, 0, max(1, (int) floor(count($allCourses) * 0.6)));
-            $standard->courses()->syncWithoutDetaching($standardIds);
-        }
 
-        // Premium: all courses
-       
+
+
+
     }
 }
 

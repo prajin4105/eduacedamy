@@ -67,7 +67,7 @@
               </div>
             </div>
 
-          <!-- Levels -->
+            <!-- Levels -->
             <div class="bg-white p-4 rounded-lg shadow">
               <h3 class="text-lg font-medium text-gray-900 mb-4">Level</h3>
               <div class="space-y-2">
@@ -139,8 +139,8 @@
             >
               <p class="text-sm text-gray-700 mb-2 sm:mb-0">
                 Showing
-                <span class="font-medium">{{ courses.length }}</span>
-                {{ courses.length === 1 ? "course" : "courses" }}
+                <span class="font-medium">{{ displayedCourses.length }}</span>
+                {{ displayedCourses.length === 1 ? "course" : "courses" }}
                 <span v-if="lastPage > 1">
                   (Page {{ currentPage }} of {{ lastPage }})
                 </span>
@@ -180,7 +180,7 @@
 
             <!-- No results -->
             <div
-              v-else-if="courses.length === 0"
+              v-else-if="displayedCourses.length === 0"
               class="bg-white p-8 text-center rounded-b-lg shadow"
             >
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -213,7 +213,7 @@
             >
               <div class="divide-y divide-gray-200">
                 <div
-                  v-for="course in courses"
+                  v-for="course in displayedCourses"
                   :key="course.id"
                   class="px-4 py-6 sm:px-6 hover:bg-gray-50 transition-colors duration-150"
                 >
@@ -248,7 +248,7 @@
                             v-else-if="course.requires_subscription"
                             class="inline-flex items-center px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full"
                           >
-                            Included in plan
+                            📦 Included in plan
                           </span>
                         </div>
 
@@ -261,9 +261,9 @@
                             <span v-else-if="parseFloat(course.price) > 0" class="bg-gray-900 text-white px-2 py-1 rounded text-sm font-bold">
                               ${{ course.price }}
                             </span>
-                            <!-- <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold"></span> -->
+                            <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
                           </div>
-                          <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold"></span>
+                          <span v-else class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">Free</span>
                         </div>
                       </div>
                     </div>
@@ -392,7 +392,7 @@
                           </button>
                         </div>
 
-                        <!-- ✅ CHANGED: Single button for all courses -->
+                        <!-- Single button for all courses -->
                         <router-link
                           :to="`/courses/${course.slug}`"
                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
@@ -522,6 +522,12 @@ const selectedLevels = ref(
     ? route.query.level
     : (route.query.level ? [route.query.level] : [])
 );
+// NEW: course types (subscription/regular)
+const selectedTypes = ref(
+  Array.isArray(route.query.type)
+    ? route.query.type
+    : (route.query.type ? [route.query.type] : [])
+);
 const sortBy = ref(route.query.sort || "latest");
 
 // 📖 Pagination
@@ -542,20 +548,48 @@ const levels = [
 
 // Computed for pagination
 const visiblePages = computed(() => {
+  const total = lastPage.value;  // total pages
+  const current = currentPage.value;
   const pages = [];
-  const maxVisible = 5;
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
-  let end = start + maxVisible - 1;
 
-  if (end > lastPage.value) {
-    end = lastPage.value;
-    start = Math.max(1, end - maxVisible + 1);
+  // If total pages <= 5, show all
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
   }
 
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
+  // Near the start (page 1–3)
+  if (current <= 3) {
+    pages.push(1, 2, "...",total-1, total);
   }
+  // Near the end (last 3 pages)
+  else if (current >= total - 2) {
+    pages.push(1, "...", total - 2, total - 1, total);
+  }
+  // In the middle
+  else {
+    pages.push(1, "...", current, "...", total);
+  }
+
   return pages;
+});
+
+
+
+
+// ✅ Displayed list after applying *local* type filter
+const displayedCourses = computed(() => {
+  // If no type filter selected, show everything fetched
+  if (!selectedTypes.value.length) return courses.value;
+
+  const wantSub = selectedTypes.value.includes("subscription");
+  const wantReg = selectedTypes.value.includes("regular");
+
+  return courses.value.filter((c) => {
+    const isSub = !!c.requires_subscription; // subscription courses
+    const isReg = !isSub;                    // everything else = regular
+    return (wantSub && isSub) || (wantReg && isReg);
+  });
 });
 
 // Image handling functions
@@ -656,6 +690,7 @@ const fetchCourses = async (page = 1) => {
   try {
     const params = {
       page,
+      per_page: 12, // 👈 ADD THIS LINE — tell backend how many to return
     };
 
     if (searchQuery.value && searchQuery.value.trim()) {
@@ -670,15 +705,17 @@ const fetchCourses = async (page = 1) => {
       params.levels = selectedLevels.value;
     }
 
+    if (selectedTypes.value.length > 0) {
+      // send to backend (supports either 'type' or 'types')
+      params.type = selectedTypes.value;
+      params.types = selectedTypes.value;
+    }
+
     if (sortBy.value && sortBy.value !== "latest") {
       params.sort = sortBy.value;
     }
 
-    console.log("Fetching courses with params:", params);
-
     const { data } = await axios.get("/courses", { params });
-
-    console.log("API Response:", data);
 
     if (data.data && Array.isArray(data.data)) {
       courses.value = data.data;
@@ -709,11 +746,13 @@ const fetchCourses = async (page = 1) => {
   }
 };
 
+
 // Reset all filters
 const resetFilters = () => {
   searchQuery.value = "";
   selectedCategories.value = [];
   selectedLevels.value = [];
+  selectedTypes.value = [];
   sortBy.value = "latest";
   currentPage.value = 1;
   updateUrlAndFetch();
@@ -721,7 +760,7 @@ const resetFilters = () => {
 
 // 👀 Watch for filter changes & update URL + fetch courses
 watch(
-  [searchQuery, selectedCategories, selectedLevels, sortBy],
+  [searchQuery, selectedCategories, selectedLevels, selectedTypes, sortBy],
   () => {
     currentPage.value = 1;
     updateUrlAndFetch();
@@ -741,6 +780,7 @@ const updateUrlAndFetch = () => {
   if (searchQuery.value) query.search = searchQuery.value;
   if (selectedCategories.value.length > 0) query.category = selectedCategories.value;
   if (selectedLevels.value.length > 0) query.level = selectedLevels.value;
+  if (selectedTypes.value.length > 0) query.type = selectedTypes.value;
   if (sortBy.value !== "latest") query.sort = sortBy.value;
   if (currentPage.value > 1) query.page = currentPage.value;
 
@@ -783,145 +823,50 @@ onMounted(async () => {
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: .5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
+.course-image-container { position: relative; overflow: hidden; border-radius: 0.5rem; }
+.course-image-container img { transition: transform 0.3s ease; }
+.course-image-container:hover img { transform: scale(1.05); }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.badge-enter { animation: fadeInUp 0.3s ease-out; }
 
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
+button:focus { outline: 2px solid transparent; outline-offset: 2px; }
+button:focus-visible { box-shadow: 0 0 0 2px #4f46e5; }
 
-.course-image-container {
-  position: relative;
-  overflow: hidden;
-  border-radius: 0.5rem;
-}
+.course-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.course-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
 
-.course-image-container img {
-  transition: transform 0.3s ease;
-}
-
-.course-image-container:hover img {
-  transform: scale(1.05);
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.badge-enter {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-button:focus {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
-button:focus-visible {
-  box-shadow: 0 0 0 2px #4f46e5;
-}
-
-.course-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.course-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.price-badge {
-  backdrop-filter: blur(4px);
-  background-color: rgba(0, 0, 0, 0.8);
-}
+.price-badge { backdrop-filter: blur(4px); background-color: rgba(0,0,0,0.8); }
 
 @media (max-width: 640px) {
-  .course-image-container {
-    height: 200px;
-  }
-
-  .line-clamp-2 {
-    -webkit-line-clamp: 1;
-  }
-
-  .line-clamp-3 {
-    -webkit-line-clamp: 2;
-  }
+  .course-image-container { height: 200px; }
+  .line-clamp-2 { -webkit-line-clamp: 1; }
+  .line-clamp-3 { -webkit-line-clamp: 2; }
 }
 
 @media (max-width: 768px) {
-  .flex-wrap {
-    gap: 0.5rem;
-  }
-
-  .text-xl {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-  }
+  .flex-wrap { gap: 0.5rem; }
+  .text-xl { font-size: 1.125rem; line-height: 1.75rem; }
 }
 
 @media (prefers-color-scheme: dark) {
-  .course-image-container img {
-    filter: brightness(0.9);
-  }
-
-  .bg-white {
-    background-color: #1f2937;
-    color: white;
-  }
-
-  .text-gray-900 {
-    color: #f9fafb;
-  }
-
-  .text-gray-600 {
-    color: #d1d5db;
-  }
-
-  .text-gray-500 {
-    color: #9ca3af;
-  }
+  .course-image-container img { filter: brightness(0.9); }
+  .bg-white { background-color: #1f2937; color: white; }
+  .text-gray-900 { color: #f9fafb; }
+  .text-gray-600 { color: #d1d5db; }
+  .text-gray-500 { color: #9ca3af; }
 }
 </style>

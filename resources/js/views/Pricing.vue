@@ -64,7 +64,7 @@
                   <!-- Card Header -->
                   <div class="text-black p-6 text-center" :style="{ background: getPlanGradient(plan, index) }">
                     <h3 class="text-2xl font-bold mb-1">{{ plan.name }}</h3>
-                    <p class="text-gray-600 text-sm mb-3">
+                    <p class="text-gray-600 text-sm mb-3 truncate w-64">
                       {{ plan.description || 'Access premium courses and advanced features with this plan.' }}
                     </p>
                     <div class="flex items-baseline justify-center mb-4">
