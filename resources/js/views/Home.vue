@@ -273,7 +273,7 @@ const fetchEnrolledCourses = async () => {
 const loadRazorpay = () => new Promise((resolve, reject) => {
   if (window.Razorpay) return resolve(true);
   const script = document.createElement("script");
-  script.src = "https://checkout.razorpay.com/v1/checkout.js";
+  script.src = "https://checkout.razorpay.com/v1/check  out.js";
   script.onload = () => resolve(true);
   script.onerror = () => reject(new Error("Razorpay SDK failed to load"));
   document.body.appendChild(script);
@@ -410,7 +410,7 @@ const getCourseButtonText = (course) => {
 const getCourseButtonClass = (course) => {
   if (isEnrolled(course.id)) {
     return 'bg-green-100 text-green-800';
-  } 
+  }
 
   if (course.requires_subscription || course.available_plans?.length > 0) {
     return 'bg-purple-600 text-white hover:bg-purple-700';

@@ -160,7 +160,7 @@
                       {{ course.videos.length }} video{{ course.videos.length !== 1 ? 's' : '' }}
                     </li>
                   </ul>
-                  
+
                   <!-- Show available plans for subscription courses -->
                   <div v-if="course.available_plans?.length > 0" class="mt-4">
                     <h5 class="text-sm font-medium text-gray-900 mb-2">Available in:</h5>
@@ -445,7 +445,7 @@ export default {
         }
       } catch (error) {
         console.error('Error enrolling in course:', error);
-        
+
         if (error.response?.status === 422 && error.response.data.requires_subscription) {
           // Course requires subscription - redirect to pricing
           window.location.href = '/pricing';
@@ -531,16 +531,16 @@ export default {
       if (enrolling.value) {
         return 'Enrolling...';
       }
-      
+
       if (course.value?.is_enrolled) {
         return 'Start Learning';
       }
-      
+
       // Check if course is in any plan (subscription course)
       if (course.value?.requires_subscription || course.value?.available_plans?.length > 0) {
         return 'Subscribe to Access';
       }
-      
+
       return 'Buy Now';
     };
 
@@ -548,12 +548,12 @@ export default {
       if (course.value?.is_enrolled) {
         return 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500';
       }
-      
+
       // Check if course is in any plan (subscription course)
       if (course.value?.requires_subscription || course.value?.available_plans?.length > 0) {
         return 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500';
       }
-      
+
       return 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500';
     };
 

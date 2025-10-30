@@ -317,4 +317,3 @@ class CourseController extends Controller
         return response()->json($levels->values());
     }
 }
-`
