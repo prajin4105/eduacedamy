@@ -15,11 +15,14 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 class UserTestResource extends Resource
 {
     protected static ?string $model = UserTest::class;
-    // protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+   protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
     protected static \UnitEnum|string|null $navigationGroup = 'Courses';
 
      public static function form(Schema $schema): Schema

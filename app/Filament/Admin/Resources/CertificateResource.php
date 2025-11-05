@@ -17,10 +17,12 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 class CertificateResource extends Resource
 {
     protected static ?string $model = Certificate::class;
-    // protected static ?string $navigationIcon = 'heroicon-o-badge-check';
+   protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
     // protected static ?NavigationGroup $navigationGroup = NavigationGroup::COURSES;
 
      public static function form(Schema $schema): Schema

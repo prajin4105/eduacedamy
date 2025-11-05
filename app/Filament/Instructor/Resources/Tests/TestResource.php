@@ -1,32 +1,36 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\Instructor\Resources\Tests;
 
+use App\Filament\Instructor\Resources\Tests\Pages\CreateTest;
+use App\Filament\Instructor\Resources\Tests\Pages\EditTest;
+use App\Filament\Instructor\Resources\Tests\Pages\ListTests;
 use App\Models\Test;
-use Filament\Forms;
+use BackedEnum;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
-use App\Filament\Admin\Resources\TestResource\Pages;
-use App\Filament\Admin\Resources\TestResource\RelationManagers\QuestionsRelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use Filament\Forms;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use BackedEnum;
-use Filament\Support\Icons\Heroicon;
+use App\Filament\Admin\Resources\TestResource\RelationManagers\QuestionsRelationManager;
 use UnitEnum;
 
 class TestResource extends Resource
 {
     protected static ?string $model = Test::class;
+    protected static UnitEnum|string|null $navigationGroup = 'Content';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
-    protected static \UnitEnum|string|null $navigationGroup = 'Courses';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
             Forms\Components\Select::make('course_id')
-                ->relationship('course', 'title')
+                ->relationship('course', 'title', fn ($query) =>
+                    $query->where('instructor_id', auth()->id())
+                )
                 ->required(),
 
             Forms\Components\TextInput::make('title')
@@ -48,7 +52,9 @@ class TestResource extends Resource
                     ->searchable()
                     ->sortable(),
                 \Filament\Tables\Columns\TextColumn::make('title')->searchable(),
-                \Filament\Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                \Filament\Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->since(),
             ])
             ->actions([
                 EditAction::make(),
@@ -69,10 +75,17 @@ class TestResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTests::route('/'),
-            'create' => Pages\CreateTest::route('/create'),
-            'edit' => Pages\EditTest::route('/{record}/edit'),
+            'index' => ListTests::route('/'),
+            'create' => CreateTest::route('/create'),
+            'edit' => EditTest::route('/{record}/edit'),
         ];
     }
-}
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('course', function ($query) {
+                $query->where('instructor_id', auth()->id());
+            });
+    }
+}

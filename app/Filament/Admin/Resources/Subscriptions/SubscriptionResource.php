@@ -12,13 +12,15 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 class SubscriptionResource extends Resource
 {
     protected static ?string $model = Subscription::class;
-
-    // protected static ?string $navigationGroup = 'Catalog';
-    // protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static \UnitEnum|string|null $navigationGroup = 'Catalog';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
     protected static ?string $modelLabel = 'Subscription';
     protected static ?string $pluralModelLabel = 'Subscriptions';
 

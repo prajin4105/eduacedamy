@@ -23,14 +23,16 @@ use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+
 
 class PlanResource extends Resource
 {
     protected static ?string $model = Plan::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-currency-dollar';
-
-    // protected static string|BackedEnum|null $navigationGroup = 'Catalog';
+        protected static \UnitEnum|string|null $navigationGroup = 'Catalog';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     protected static ?int $navigationSort = 40;
 
@@ -111,5 +113,5 @@ class PlanResource extends Resource
             'edit' => Pages\EditPlan::route('/{record}/edit'),
         ];
     }
-    
+
 }

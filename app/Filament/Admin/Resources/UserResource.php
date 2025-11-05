@@ -12,12 +12,14 @@ use Filament\Tables\Table;
 use Filament\Tables;
 use Illuminate\Support\Facades\Hash;
 use UnitEnum;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    // protected static string|UnitEnum|null $navigationIcon = 'heroicon-o-users';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
     protected static UnitEnum|string|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;

@@ -18,12 +18,16 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Hidden;
 use UnitEnum;
 use Filament\Actions;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 
 class CourseResource extends Resource
 {
     protected static ?string $model = Course::class;
 
     protected static UnitEnum|string|null $navigationGroup = 'Content';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     protected static ?int $navigationSort = 1;
 
@@ -107,7 +111,12 @@ class CourseResource extends Resource
                 ]),
             ]);
     }
-
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
