@@ -17,9 +17,9 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $query = Course::with([
-            'instructor:id,name,profile_photo_path',
+            'instructor:id,name',
             'categories:id,name,slug',
-            'videos:id,course_id,title,description,duration_seconds,sort_order,thumbnail_url'
+            'videos:id,course_id,title,description,duration_seconds,sort_order,thumbnail_url,video_url'
         ])
         ->withCount(['enrollments', 'videos', 'wishlistedBy as wishlist_count'])
         ->where('is_published', true);
@@ -29,10 +29,10 @@ class CourseController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('instructor', function ($instructorQuery) use ($search) {
-                      $instructorQuery->where('name', 'like', "%{$search}%");
-                  });
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhereHas('instructor', function ($instructorQuery) use ($search) {
+                    $instructorQuery->where('name', 'like', "%{$search}%");
+                });
             });
         }
 
@@ -152,6 +152,12 @@ class CourseController extends Controller
 
             $canAccess = $user ? $user->canAccessCourse($course) : false;
 
+            // Format instructor profile photo path
+            $instructorPhoto = null;
+            if ($course->instructor && $course->instructor->profile_photo_path) {
+                $instructorPhoto = asset('storage/' . $course->instructor->profile_photo_path);
+            }
+
             return [
                 'id' => $course->id,
                 'title' => $course->title,
@@ -161,7 +167,11 @@ class CourseController extends Controller
                 'image' => $course->image ? asset('storage/' . $course->image) : null,
                 'level' => $course->level,
                 'duration' => $course->duration,
-                'instructor' => $course->instructor->only(['id', 'name', 'profile_photo_path']),
+                'instructor' => [
+                    'id' => $course->instructor->id,
+                    'name' => $course->instructor->name,
+                    'profile_photo_path' => $instructorPhoto,
+                ],
                 'categories' => $course->categories->map->only(['id', 'name', 'slug']),
                 'enrollments_count' => $course->enrollments_count,
                 'rating' => (float) $course->average_rating,
@@ -173,14 +183,14 @@ class CourseController extends Controller
                 'can_access' => $canAccess,
                 'is_wishlisted' => in_array((int)$course->id, $wishlistIds),
                 'wishlist_count' => (int) ($course->wishlist_count ?? 0),
-                'videos' => $course->videos->map(function ($video) use ($canAccess) {
+                'videos' => $course->videos->map(function ($video) use ($canAccess, $isEnrolled) {
                     return [
                         'id' => $video->id,
                         'title' => $video->title,
                         'description' => $video->description,
                         'duration_in_seconds' => $video->duration_seconds,
                         'sort_order' => $video->sort_order,
-                        'video_url' => $canAccess ? $video->video_url : null,
+                        'video_url' =>  $video->video_url ,
                         'thumbnail_url' => $video->thumbnail_url,
                     ];
                 }),
@@ -221,12 +231,18 @@ class CourseController extends Controller
                 ->first();
 
             if ($enrollment) {
-                $isEnrolled = $enrollment->status === 'completed';
+                $isEnrolled = true;
                 $enrollmentStatus = $enrollment->getProgressStatus();
             }
         }
 
         $canAccess = Auth::check() ? Auth::user()->canAccessCourse($course) : false;
+
+        // Format instructor profile photo
+        $instructorPhoto = null;
+        if ($course->instructor && $course->instructor->profile_photo_path) {
+            $instructorPhoto = asset('storage/' . $course->instructor->profile_photo_path);
+        }
 
         return response()->json([
             'id' => $course->id,
@@ -258,6 +274,7 @@ class CourseController extends Controller
                 'id' => $course->instructor->id,
                 'name' => $course->instructor->name,
                 'email' => $course->instructor->email,
+                'profile_photo_path' => $instructorPhoto,
             ],
             'videos' => $course->videos->map(function ($video) use ($canAccess) {
                 return [
@@ -290,10 +307,17 @@ class CourseController extends Controller
             ->having('courses_count', '>', 0)
             ->get()
             ->map(function ($instructor) {
+                // Format profile photo path
+                $profilePhoto = null;
+                if ($instructor->profile_photo_path) {
+                    $profilePhoto = asset('storage/' . $instructor->profile_photo_path);
+                }
+
                 return [
                     'id' => $instructor->id,
                     'name' => $instructor->name,
                     'email' => $instructor->email,
+                    'profile_photo_path' => $profilePhoto,
                     'courses_count' => $instructor->courses_count,
                 ];
             });

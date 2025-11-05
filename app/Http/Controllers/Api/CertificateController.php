@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\Course;
+use App\Services\CertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -27,25 +28,12 @@ public function index(Request $request)
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // ✅ Step 1: Check completed courses in course_progress
-        $completedCourses = \DB::table('course_progress')
-    ->where('user_id', $user->id)
-    ->where('progress_percentage', 100) // ✅ check 100% progress
-    ->pluck('course_id');
-
-
-        foreach ($completedCourses as $courseId) {
-            // Create certificate if not already exists
-            \App\Models\Certificate::firstOrCreate(
-                ['user_id' => $user->id, 'course_id' => $courseId],
-                [
-                    'certificate_number' => $this->generateCertificateNumber(),
-                    'issued_at' => now(),
-                ]
-            );
-        }
-
-        // ✅ Step 2: Fetch certificates with course & instructor
+        // Only fetch existing certificates - DO NOT auto-create
+        // Certificates are only created via:
+        // 1. TestController::submitTest() when user passes test (for courses with tests)
+        // 2. CourseProgress::markVideoCompleted() when course is completed (for courses without tests)
+        // Both use CertificateService which enforces the proper rules
+        
         $certificates = Certificate::with(['course' => function ($query) {
                 $query->with('instructor');
             }])
@@ -283,6 +271,94 @@ public function index(Request $request)
     }
 }
 
+
+    /**
+     * Verify certificate by certificate number (public route)
+     */
+    public function verifyCertificate($certificateNumber)
+    {
+        try {
+            $certificate = Certificate::with(['user', 'course.instructor'])
+                ->where('certificate_number', $certificateNumber)
+                ->first();
+
+            if (!$certificate) {
+                return response()->json([
+                    'valid' => false,
+                    'message' => 'Certificate not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'valid' => true,
+                'certificate' => [
+                    'certificate_number' => $certificate->certificate_number,
+                    'student_name' => $certificate->user->name,
+                    'course_title' => $certificate->course->title,
+                    'instructor_name' => $certificate->course->instructor->name ?? 'Course Instructor',
+                    'issued_at' => $certificate->issued_at->format('F j, Y'),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Certificate verification failed: ' . $e->getMessage());
+
+            return response()->json([
+                'valid' => false,
+                'message' => 'Failed to verify certificate',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download certificate by course ID
+     */
+    public function downloadByCourse($courseId)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+
+            $certificate = Certificate::with('course.instructor')
+                ->where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->first();
+
+            if (!$certificate) {
+                return response()->json(['message' => 'Certificate not found'], 404);
+            }
+
+            $certificateData = [
+                'student_name' => $user->name,
+                'course_title' => $certificate->course->title,
+                'certificate_number' => $certificate->certificate_number,
+                'issue_date' => $certificate->issued_at->format('F j, Y'),
+                'instructor_name' => $certificate->course->instructor->name ?? 'Course Instructor'
+            ];
+
+            $html = view('certificates.template', $certificateData)->render();
+
+            $pdfPath = storage_path('app/public/certificate_' . $certificate->certificate_number . '.pdf');
+
+            Browsershot::html($html)
+                ->margins(0, 0, 0, 0)
+                ->showBackground()
+                ->fullPage()
+                ->save($pdfPath);
+
+            return response()->download($pdfPath)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            Log::error('Certificate download by course failed: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Failed to download certificate',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     private function checkCourseCompletion($user, $courseId)
     {

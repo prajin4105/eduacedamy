@@ -124,9 +124,9 @@
                     {{ getEnrollButtonText() }}
                   </button>
 
-                  <!-- Test Button (shown when course is completed and test is available) -->
+                  <!-- Test Button (shown when course is completed and test is available and not yet passed) -->
                   <button
-                    v-if="course.is_enrolled && course.enrollment_status === 'completed' && hasTest && !testPassed"
+                    v-if="course.is_enrolled  && hasTest "
                     @click="startTest"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
@@ -134,6 +134,15 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Take Final Test
+                  </button>
+
+                  <!-- Certificate Button (when completed and eligible) -->
+                  <button
+                    v-if="course.is_enrolled && course.enrollment_status === 'completed' && (!hasTest || testPassed)"
+                    @click="downloadCertificate"
+                    class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-2"
+                  >
+                    Download Certificate
                   </button>
 
                 </div>
@@ -497,11 +506,11 @@ export default {
       if (!course.value?.id) return;
 
       try {
-        const response = await axios.get(`/api/courses/${course.value.id}/test`);
-        if (response.data.success) {
-          hasTest.value = true;
-          testData.value = response.data.data;
-        }
+        const statusRes = await axios.get(`/test/status/${course.value.id}`);
+        const st = statusRes.data;
+        hasTest.value = !!st.hasTest;
+        testPassed.value = !!st.passed;
+        testData.value = st;
       } catch (error) {
         console.log('No test available for this course');
         hasTest.value = false;
@@ -510,20 +519,33 @@ export default {
 
     const checkTestStatus = async () => {
       if (!course.value?.id) return;
-
       try {
-        const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
-        if (response.data.success) {
-          const attempts = response.data.data.attempts;
-          testPassed.value = attempts.some(attempt => attempt.is_passed);
-        }
-      } catch (error) {
-        console.log('Error checking test status:', error);
-      }
+        const statusRes = await axios.get(`/test/status/${course.value.id}`);
+        testPassed.value = !!statusRes.data.passed;
+      } catch (e) {}
     };
 
     const startTest = () => {
       window.location.href = `/student/course/${course.value.id}/test`;
+    };
+
+    const downloadCertificate = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await axios.get(`/certificate/download/${course.value.id}` , {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/pdf' },
+          responseType: 'blob'
+        });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `certificate_${course.value.id}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Certificate download failed');
+      }
     };
 
     // Helper methods for enrollment button
@@ -602,6 +624,7 @@ export default {
       testPassed,
       testData,
       startTest,
+      downloadCertificate,
       getEnrollButtonText,
       getEnrollButtonClass
     };

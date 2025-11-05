@@ -69,7 +69,7 @@
                       <span class="text-5xl font-bold">
                         {{ currency(plan.currency) }}{{ Math.floor(plan.price) }}
                       </span>
-                      <span class="text-lg ml-2 opacity-90">/{{ plan.interval }}</span>
+                      <!-- <span class="text-lg ml-2 opacity-90">/{{ plan.interval }}</span> -->
                     </div>
                   </div>
 

@@ -15,6 +15,7 @@ class Certificate extends Model
         'user_id',
         'course_id',
         'certificate_number',
+        'certificate_path',
         'issued_at',
     ];
 

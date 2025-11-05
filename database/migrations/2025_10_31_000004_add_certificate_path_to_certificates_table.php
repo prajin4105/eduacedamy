@@ -6,23 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('course_progress', function (Blueprint $table) {
-            //
+        Schema::table('certificates', function (Blueprint $table) {
+            $table->string('certificate_path')->nullable()->after('certificate_number');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('course_progress', function (Blueprint $table) {
-            //
+        Schema::table('certificates', function (Blueprint $table) {
+            $table->dropColumn('certificate_path');
         });
     }
 };
+
+

@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,7 +45,7 @@
 
         .title {
             font-size: 3em;
-            color: #a87d32;
+            color: #a9833c;
             margin-bottom: 20px;
         }
 
@@ -117,6 +119,12 @@
 
                 <!-- Date -->
                 <p class="date">Awarded on: {{ $issue_date }}</p>
+                
+                <!-- Certificate Number and Verification -->
+                <div style="margin-top: 20px; font-size: 0.9em; color: #777;">
+                    <p>Certificate Number: <strong>{{ $certificate_number }}</strong></p>
+                    <p>Verify this certificate at: {{ url('/api/verify-certificate/' . $certificate_number) }}</p>
+                </div>
 
                 <!-- Signatures -->
                 <div class="signatures">

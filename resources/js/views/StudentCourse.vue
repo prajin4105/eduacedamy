@@ -118,22 +118,48 @@
       <!-- Course Progress -->
       <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:px-6">
-          <h2 class="text-xl font-semibold text-gray-900"></h2>
+          <h2 class="text-xl font-semibold text-gray-900">Course Progress</h2>
           <div class="mt-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700">Course Completion</span>
               <span class="text-sm font-medium text-gray-900">{{ progressPercentage }}%</span>
             </div>
+
             <div class="w-full bg-gray-200 rounded-full h-3">
               <div
                 class="bg-indigo-600 h-3 rounded-full transition-all duration-500"
                 :style="{ width: progressPercentage + '%' }"
               ></div>
             </div>
+
             <div class="mt-2 flex justify-between text-sm text-gray-600">
               <span>{{ completedVideos }} of {{ totalVideos }} videos completed</span>
               <span v-if="timeSpent">{{ formatTimeSpent(timeSpent) }} total time</span>
             </div>
+
+            <!-- Test Button - Show when enrolled and test is available -->
+            <button
+              v-if="isEnrolled && hasTest && !testPassed"
+              @click="startTest"
+              class="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Take Final Test
+            </button>
+
+            <!-- Test Passed Message -->
+            <div v-if="isEnrolled && hasTest && testPassed" class="mt-4">
+              <div class="flex items-center justify-center px-3 py-2 bg-green-50 border border-green-200 rounded-md">
+                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm font-medium text-green-800">Test Passed!</span>
+              </div>
+            </div>
+
+            <!-- Course Completion Badge and Certificate -->
             <div v-if="progress?.is_completed" class="mt-4">
               <div class="flex items-center justify-between">
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -142,27 +168,18 @@
                   </svg>
                   Course Completed
                 </span>
-                <div class="flex space-x-2">
-                  <button
-                    v-if="hasTest && !testPassed"
-                    @click="startTest"
-                    class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Take Test
-                  </button>
-                  <button
-                    @click="downloadCertificate"
-                    :disabled="downloadingCertificate"
-                    class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <i v-if="downloadingCertificate" class="fas fa-spinner fa-spin mr-1"></i>
-                    <i v-else class="fas fa-certificate mr-1"></i>
-                    {{ downloadingCertificate ? 'Generating...' : 'Download Certificate' }}
-                  </button>
-                </div>
+
+                <!-- Download Certificate - Only show if no test OR test is passed -->
+                <button
+                  v-if="!hasTest || testPassed"
+                  @click="downloadCertificate"
+                  :disabled="downloadingCertificate"
+                  class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i v-if="downloadingCertificate" class="fas fa-spinner fa-spin mr-1"></i>
+                  <i v-else class="fas fa-certificate mr-1"></i>
+                  {{ downloadingCertificate ? 'Generating...' : 'Download Certificate' }}
+                </button>
               </div>
             </div>
           </div>
@@ -267,7 +284,7 @@ const error = ref(null);
 const course = ref(null);
 const progress = ref(null);
 const timeSpent = ref(0);
-const enrollmentStatus = ref(null); // Added to track enrollment status
+const enrollmentStatus = ref(null);
 const downloadingCertificate = ref(false);
 const hasTest = ref(false);
 const testPassed = ref(false);
@@ -293,9 +310,7 @@ const progressPercentage = computed(() => {
   return Math.round((completedVideos.value / totalVideos.value) * 100);
 });
 
-// FIXED: Improved isEnrolled computed property with multiple checks
 const isEnrolled = computed(() => {
-  // Check multiple sources for enrollment status
   if (enrollmentStatus.value !== null) {
     return enrollmentStatus.value;
   }
@@ -303,16 +318,14 @@ const isEnrolled = computed(() => {
     return true;
   }
   if (progress.value && Object.keys(progress.value).length > 0) {
-    return true; // If we have progress data, user must be enrolled
+    return true;
   }
   return false;
 });
 
-// New: backend exposes can_access when user has subscription access
 const canAccess = computed(() => {
   if (!course.value) return false;
   if (isEnrolled.value) return true;
-  // Prefer explicit backend flag when available
   if (typeof course.value.can_access !== 'undefined') {
     return Boolean(course.value.can_access);
   }
@@ -329,7 +342,7 @@ const nextVideo = computed(() => {
   ) || null;
 });
 
-// FIXED: Added method to check enrollment status
+// Check enrollment status
 const checkEnrollmentStatus = async () => {
   if (!course.value?.id) return;
 
@@ -376,12 +389,12 @@ const syncProgressFromStorage = () => {
   }
 };
 
-// FIXED: Improved fetchCourseData method
+// Fetch course data
 const fetchCourseData = async () => {
   try {
     loading.value = true;
     error.value = null;
-    enrollmentStatus.value = null; // Reset enrollment status
+    enrollmentStatus.value = null;
 
     // Fetch course data
     const response = await axios.get(`/courses/${route.params.slug}`);
@@ -401,6 +414,10 @@ const fetchCourseData = async () => {
     if (canAccess.value) {
       await fetchProgress();
       syncProgressFromStorage();
+
+      // Check test availability and status after progress is loaded
+      await checkTestAvailability();
+      await checkTestStatus();
     } else {
       console.log('User not enrolled, skipping progress fetch');
     }
@@ -413,6 +430,7 @@ const fetchCourseData = async () => {
   }
 };
 
+// Fetch progress
 const fetchProgress = async () => {
   if (!course.value?.id || !isEnrolled.value) {
     console.log('Not enrolled or no course ID, skipping progress fetch');
@@ -428,7 +446,12 @@ const fetchProgress = async () => {
       let videoProgressArray = [];
       if (progressData.video_progress) {
         try {
-          videoProgressArray = JSON.parse(progressData.video_progress);
+          // Check if it's already an array
+          if (typeof progressData.video_progress === 'string') {
+            videoProgressArray = JSON.parse(progressData.video_progress);
+          } else if (Array.isArray(progressData.video_progress)) {
+            videoProgressArray = progressData.video_progress;
+          }
         } catch (e) {
           console.error("Error parsing video_progress:", e);
           videoProgressArray = [];
@@ -451,7 +474,7 @@ const fetchProgress = async () => {
   } catch (error) {
     if (error.response?.status === 403) {
       console.log("Access denied to progress data - user might not be enrolled");
-      enrollmentStatus.value = false; // Update enrollment status
+      enrollmentStatus.value = false;
       progress.value = {
         progress_percentage: 0,
         video_progress: [],
@@ -466,7 +489,7 @@ const fetchProgress = async () => {
   }
 };
 
-// FIXED: Improved enrollment method with better error handling and state updates
+// Load Razorpay
 const loadRazorpay = () => new Promise((resolve, reject) => {
   if (window.Razorpay) return resolve(true);
   const script = document.createElement("script");
@@ -476,6 +499,7 @@ const loadRazorpay = () => new Promise((resolve, reject) => {
   document.body.appendChild(script);
 });
 
+// Buy course
 const buyCourse = async (course) => {
   try {
     enrollmentLoading.value = true;
@@ -566,7 +590,7 @@ const getVideoStatus = (videoId) => {
   if (isVideoCompleted(videoId)) {
     return 'Completed';
   }
-  return 'Not Started';
+  return '';
 };
 
 const getVideoStatusClass = (videoId) => {
@@ -684,45 +708,38 @@ const checkTestAvailability = async () => {
   if (!course.value?.id) return;
 
   try {
-    const response = await axios.get(`/api/courses/${course.value.id}/test`);
-    if (response.data.success) {
-      hasTest.value = true;
-      testData.value = response.data.data;
-    }
+    const statusRes = await axios.get(`/test/status/${course.value.id}`);
+    const st = statusRes.data;
+    hasTest.value = !!st.hasTest;
+    testPassed.value = !!st.passed;
+    testData.value = st;
+    console.log('Test availability:', { hasTest: hasTest.value, testPassed: testPassed.value });
   } catch (error) {
     console.log('No test available for this course');
     hasTest.value = false;
+    testPassed.value = false;
   }
 };
 
 const checkTestStatus = async () => {
   if (!course.value?.id) return;
-
   try {
-    const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
-    if (response.data.success) {
-      const attempts = response.data.data.attempts;
-      testPassed.value = attempts.some(attempt => attempt.is_passed);
-    }
-  } catch (error) {
-    console.log('Error checking test status:', error);
+    const statusRes = await axios.get(`/test/status/${course.value.id}`);
+    testPassed.value = !!statusRes.data.passed;
+    console.log('Test status checked:', testPassed.value);
+  } catch (e) {
+    console.log('Error checking test status:', e);
   }
 };
 
 const startTest = () => {
-  router.push(`/student/course/${course.value.id}/test`);
+  window.location.href = `/student/course/${course.value.id}/test`;
 };
 
 // Initialize
 onMounted(async () => {
   await fetchCourseData();
   window.addEventListener('storage', handleStorageChange);
-
-  // Check test availability and status after course data is loaded
-  if (course.value?.id) {
-    await checkTestAvailability();
-    await checkTestStatus();
-  }
 });
 
 // Cleanup on unmount

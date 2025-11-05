@@ -26,6 +26,18 @@ const routes = [
     component: Pricing
   },
   {
+   path: '/student/course/:courseId/test',
+    name: 'course-test',
+    component: () => import('../views/CourseTest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/test/:courseId',
+    name: 'test-simple',
+    component: () => import('../views/CourseTest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/pricing/:slug',
     name: 'PlanDetail',
     component: PlanDetail,

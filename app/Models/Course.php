@@ -44,7 +44,6 @@ class Course extends Model
         return null;
     }
 
-
     public function instructor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'instructor_id');
@@ -121,6 +120,11 @@ public function wishlistedBy()
     public function progress(): HasMany
     {
         return $this->hasMany(CourseProgress::class);
+    }
+
+    public function tests(): HasMany
+    {
+        return $this->hasMany(Test::class);
     }
 
     public function getTotalVideosCount(): int

@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('course_tests', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('tests', function (Blueprint $table) {
+            $table->unsignedTinyInteger('passing_score')->default(75)->after('description');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('course_tests');
+        Schema::table('tests', function (Blueprint $table) {
+            $table->dropColumn('passing_score');
+        });
     }
 };

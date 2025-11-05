@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
- use App\Models\Certificate;
+use App\Services\CertificateService;
 
 class CourseProgress extends Model
 {
@@ -93,10 +93,12 @@ public static function createForUserCourse($user, $course)
                 $this->is_completed = true;
                 $this->completed_at = now();
 
-                // Create certificate if it doesn't exist
-                if (!Certificate::hasCertificate($this->user, $this->course)) {
-                    Certificate::createForCompletedCourse($this->user, $this->course);
-                }
+                // Check and issue certificate using CertificateService
+                // Rule 1: Courses with tests - certificate only issued when test is passed (handled in TestController)
+                // Rule 2: Courses without tests - certificate issued when 100% progress and is_completed = 1
+                // CertificateService will check if course has test and handle accordingly
+                $certificateService = new CertificateService();
+                $certificateService->checkAndIssueCertificate($this->user, $this->course);
             }
 
             $this->save();

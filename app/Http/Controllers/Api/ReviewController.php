@@ -21,7 +21,7 @@ class ReviewController extends Controller
                 $query->select('id', 'name'); // ✅ removed profile_photo_path
             }])
             ->latest()
-            ->paginate(10);
+            ->paginate(100);
 
         // Calculate rating distribution
         $ratingDistribution = $course->reviews()

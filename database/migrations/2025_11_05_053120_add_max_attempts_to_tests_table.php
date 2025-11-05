@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('test_questions', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('tests', function (Blueprint $table) {
+            $table->integer('max_attempts')->default(3);
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('test_questions');
+        Schema::table('tests', function (Blueprint $table) {
+            $table->dropColumn('max_attempts');
+        });
     }
 };

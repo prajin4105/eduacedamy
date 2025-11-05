@@ -96,7 +96,7 @@ class DemoDataSeeder extends Seeder
 
         // Create 100 courses
         $courses = [];
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; $i < 2; $i++) {
             $topicIndex = $i % count($courseTopics);
             $topic = $courseTopics[$topicIndex];
             $instructorIndex = $i % count($instructors);

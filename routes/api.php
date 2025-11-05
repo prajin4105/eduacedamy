@@ -11,6 +11,10 @@ use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\ForgotPasswordController;
+use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\SubscriptionCourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +69,9 @@ Route::get('/plans/{slug}', [PlanController::class, 'show']);
 // Public review routes
 Route::get('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
 
+// Public certificate verification route
+Route::get('/verify-certificate/{certificateNumber}', [\App\Http\Controllers\Api\CertificateController::class, 'verifyCertificate']);
+
 // Protected API routes (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
 	Route::apiResource('enrollments', EnrollmentController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
@@ -83,15 +90,20 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::get('/courses/{courseId}/certificate/check-eligibility', [CertificateController::class, 'checkEligibility']);
 	Route::get('/certificates/{certificateId}/download', [CertificateController::class, 'download']);
 
+	// Test routes
+	Route::get('/test/{courseId}', [TestController::class, 'showTest']);
+	Route::post('/test/submit', [TestController::class, 'submitTest']);
+	Route::get('/test/status/{courseId}', [TestController::class, 'status']);
+	Route::get('/certificate/download/{courseId}', [CertificateController::class, 'downloadByCourse']);
+
 	// Review Routes
 	Route::post('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
 	Route::put('/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'update']);
 	Route::delete('/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'destroy']);
+    Route::get('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
+
 	Route::get('/courses/{courseId}/enrollment-status', [CourseProgressController::class, 'getCourseEnrollmentStatus']);
 });
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Api\SubscriptionController;
-use App\Http\Controllers\Api\SubscriptionCourseController;
 Route::match(['get', 'post'], '/create-order', [PaymentController::class, 'createOrder']);
 
 // Protected enrollment check route

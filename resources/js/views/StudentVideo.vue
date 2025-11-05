@@ -134,6 +134,13 @@
         </div>
       </div>
 
+      <div v-if="progress?.is_completed && (!hasTest || testPassed)" class="mx-4 mt-4 bg-indigo-50 border border-indigo-200 rounded-md p-4">
+        <div class="flex items-center justify-between">
+          <div class="text-indigo-800">You are eligible for certificate download.</div>
+          <button @click="downloadCertificate" class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Download Certificate</button>
+        </div>
+      </div>
+
       <!-- Main Content Area - Video Player Left, Playlist Right -->
       <div class="max-w-7xl mx-auto px-4 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -143,20 +150,19 @@
             <!-- Video Player Container -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
               <div class="relative aspect-video bg-black">
-                <video
-                  v-if="video.video_url"
-                  ref="videoPlayer"
-                  controls
-                  class="w-full h-full"
-                  :poster="getValidThumbnail(video)"
-                  @loadedmetadata="onVideoLoaded"
-                  @timeupdate="onTimeUpdate"
-                  @error="onVideoError"
-                  @poster="onPosterError"
-                >
-                  <source :src="video.video_url" type="video/mp4">
-                  Your browser does not support the video tag.
-                </video>
+               <video
+  v-if="fullVideoUrl"
+  ref="videoPlayer"
+  controls
+  class="w-full h-full"
+  :poster="getValidThumbnail(video)"
+  @loadedmetadata="onVideoLoaded"
+  @timeupdate="onTimeUpdate"
+  @error="onVideoError"
+>
+  <source :src="fullVideoUrl" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
                 <div v-else class="w-full h-full flex items-center justify-center">
                   <div class="text-center text-white">
                     <svg class="mx-auto h-16 w-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,6 +346,7 @@
 </template>
 
 <script setup>
+
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
@@ -886,11 +893,11 @@ const checkTestAvailability = async () => {
   if (!course.value?.id) return;
 
   try {
-    const response = await axios.get(`/courses/${course.value.id}/test`);
-    if (response.data.success) {
-      hasTest.value = true;
-      testData.value = response.data.data;
-    }
+    const statusRes = await axios.get(`/test/status/${course.value.id}`);
+    const st = statusRes.data;
+    hasTest.value = !!st.hasTest;
+    testPassed.value = !!st.passed;
+    testData.value = st;
   } catch (error) {
     console.log('No test available for this course');
     hasTest.value = false;
@@ -899,20 +906,33 @@ const checkTestAvailability = async () => {
 
 const checkTestStatus = async () => {
   if (!course.value?.id) return;
-
   try {
-    const response = await axios.get(`/api/courses/${course.value.id}/test-attempts`);
-    if (response.data.success) {
-      const attempts = response.data.data.attempts;
-      testPassed.value = attempts.some(attempt => attempt.is_passed);
-    }
-  } catch (error) {
-    console.log('Error checking test status:', error);
-  }
+    const statusRes = await axios.get(`/test/status/${course.value.id}`);
+    testPassed.value = !!statusRes.data.passed;
+  } catch (e) {}
 };
 
 const startTest = () => {
   router.push(`/student/course/${course.value.id}/test`);
+};
+
+const downloadCertificate = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    const response = await axios.get(`/certificate/download/${course.value.id}` , {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/pdf' },
+      responseType: 'blob'
+    });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `certificate_${course.value.id}.pdf`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Certificate download failed');
+  }
 };
 
 // Initialize
@@ -925,4 +945,5 @@ onMounted(async () => {
     await checkTestStatus();
   }
 });
+
 </script>
