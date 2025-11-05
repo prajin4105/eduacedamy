@@ -99,9 +99,9 @@
                 </svg>
                 <span>Download Certificate</span>
               </button>
-              <p v-else class="text-sm text-green-600 bg-green-100 inline-block px-4 py-2 rounded-lg">
+              <!-- <p v-else class="text-sm text-green-600 bg-green-100 inline-block px-4 py-2 rounded-lg">
                 🎓 Your certificate will be available shortly
-              </p>
+              </p> -->
             </div>
           </div>
         </div>

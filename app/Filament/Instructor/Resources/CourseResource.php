@@ -3,12 +3,13 @@
 namespace App\Filament\Instructor\Resources;
 
 use App\Filament\Instructor\Resources\CourseResource\Pages;
+use App\Filament\Instructor\Resources\CourseResource\RelationManagers\VideosRelationManager;
 use App\Models\Course;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Forms;
-use Filament\Tables\Table;
+use Filament\Forms\Form;
 use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -17,58 +18,63 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Hidden;
 use UnitEnum;
-use Filament\Actions;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+
 
 class CourseResource extends Resource
 {
     protected static ?string $model = Course::class;
 
     protected static UnitEnum|string|null $navigationGroup = 'Content';
-
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->schema([
-            Section::make('Course Details')
-                ->schema([
-                    Hidden::make('instructor_id')
-                        ->default(fn () => auth()->id())
-                        ->dehydrated(true),
+        return $schema
+            ->schema([
+                Section::make('Course Details')
+                    ->schema([
+                        Hidden::make('instructor_id')
+                            ->default(fn() => auth()->id())
+                            ->dehydrated(true),
 
-                    TextInput::make('title')
-                        ->required()
-                        ->maxLength(255),
+                        TextInput::make('title')
+                            ->required()
+                            ->maxLength(255),
 
-                    TextInput::make('slug')
-                        ->maxLength(255)
-                        ->helperText('Optional; will be generated if left empty'),
+                        TextInput::make('slug')
+                            ->maxLength(255)
+                            ->helperText('Optional; will be generated if left empty'),
 
-                    Textarea::make('description')
-                        ->rows(4),
+                        Textarea::make('description')
+                            ->rows(4),
 
-                    TextInput::make('price')
-                        ->numeric()
-                        ->minValue(0)
-                        ->step('0.01'),
-                ])->columns(2),
+                        TextInput::make('price')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step('0.01'),
+                    ])->columns(2),
 
-            Section::make('Media & Publishing')
-                ->schema([
-                    FileUpload::make('image')
-                        ->directory('course-images')
-                        ->image()
-                        ->imageEditor(),
+                Section::make('Media & Publishing')
+                    ->schema([
+                        FileUpload::make('image')
+                            ->directory('course-images')
+                            ->image()
+                            ->imageEditor(),
 
-                    Toggle::make('is_published')
-                        ->label('Published')
-                        ->default(false),
-                ])->columns(2),
-        ]);
+                        Toggle::make('is_published')
+                            ->label('Published')
+                            ->default(false),
+                    ])->columns(2),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -90,6 +96,7 @@ class CourseResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -99,24 +106,21 @@ class CourseResource extends Resource
                     ->label('Published'),
             ])
             ->actions([
-               Actions\Action::make('edit')
-                    ->label('Edit')
-                    ->icon('heroicon-m-pencil-square')
-                    ->url(fn (Course $record) => static::getUrl('edit', ['record' => $record])),
-               Actions\DeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
-                Actions\BulkActionGroup::make([
-                    Actions\DeleteBulkAction::make(),
-                ]),
+                DeleteBulkAction::make(),
             ]);
     }
+
     public static function getRelations(): array
     {
         return [
-            //
+            VideosRelationManager::class,
         ];
     }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -132,5 +136,3 @@ class CourseResource extends Resource
         ];
     }
 }
-
-
