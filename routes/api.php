@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SubscriptionCourseController;
+use App\Http\Controllers\Api\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +45,9 @@ Route::get('/forgot-password', function () {
 Route::middleware('auth:sanctum')->group(function () {
 	Route::post('/logout', [AuthController::class, 'logout']);
 	Route::get('/me', [AuthController::class, 'me']);
+	// Profile routes
+	Route::get('/profile', [ProfileController::class, 'show']);
+	Route::post('/profile', [ProfileController::class, 'update']);
 });
 
 // Public category routes

@@ -119,6 +119,12 @@ const routes = [
     component: () => import('../views/Certificates.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
   // Not found route (must be last)
   {
     path: '/:pathMatch(.*)*',

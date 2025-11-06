@@ -333,7 +333,7 @@
                     <p class="font-semibold text-gray-900">Score: {{ a.score }}%</p>
                     <p class="text-sm" :class="a.passed ? 'text-green-600' : 'text-gray-600'">
                       {{ a.passed ? '✅ Passed' : '❌ Failed' }}
-                    </p>
+                    </p>    
                   </div>
                 </div>
                 <div class="text-right">
