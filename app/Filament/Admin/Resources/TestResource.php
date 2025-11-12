@@ -15,6 +15,7 @@ use Filament\Actions\DeleteBulkAction;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
+use Filament\Tables;
 
 class TestResource extends Resource
 {
@@ -35,6 +36,12 @@ class TestResource extends Resource
 
             Forms\Components\Textarea::make('description')
                 ->columnSpanFull(),
+            Forms\Components\TextInput::make('total_questions')
+                ->label('Total Questions to Show')
+                ->numeric()
+                ->minValue(1)
+                ->default(5)
+                ->required(),
         ]);
     }
 

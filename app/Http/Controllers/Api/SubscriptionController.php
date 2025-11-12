@@ -8,6 +8,7 @@ use App\Models\Enrollment;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class SubscriptionController extends Controller
 {
@@ -62,6 +63,28 @@ class SubscriptionController extends Controller
             'message' => 'Subscribed successfully',
             'subscription' => $subscription,
         ], 201);
+
+    }
+      public function getPopularPlan()
+    {
+        $popularPlan = DB::table('subscriptions')
+            ->select('plan_id', DB::raw('COUNT(*) as subscription_count'))
+            ->where('status', 'active') // Only count active subscriptions
+            ->groupBy('plan_id')
+            ->orderBy('subscription_count', 'DESC')
+            ->first();
+
+        if (!$popularPlan) {
+            return response()->json([
+                'plan_id' => null,
+                'subscription_count' => 0
+            ]);
+        }
+
+        return response()->json([
+            'plan_id' => $popularPlan->plan_id,
+            'subscription_count' => $popularPlan->subscription_count
+        ]);
     }
 
     public function cancel(Request $request)

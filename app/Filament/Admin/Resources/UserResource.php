@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use UnitEnum;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Filament\Actions;
+use Filament\Actions\Action;
 
 class UserResource extends Resource
 {
@@ -25,7 +27,7 @@ class UserResource extends Resource
     protected static ?int $navigationSort = 1;
 
    public static function form(Schema $schema): Schema
-{   
+{
     return $schema->schema([
         Section::make('User Information')
             ->schema([
@@ -86,18 +88,18 @@ class UserResource extends Resource
                         'admin' => 'danger',
                     })
                     ->sortable(),
+            ])
+            ->filters([])
+            ->actions([
+               Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                ]),
             ]);
-            // ->filters([])
-            // ->actions([
-            //     Tables\Actions\EditAction::make(),
-            //     Tables\Actions\DeleteAction::make(),
-            // ])
-            // ->bulkActions([
-            //     Tables\Actions\BulkActionGroup::make([
-            //         Tables\Actions\DeleteBulkAction::make(),
-            //     ]),
-            // ]);
-    }
+    }   
 
     public static function getRelations(): array
     {
@@ -113,3 +115,4 @@ class UserResource extends Resource
         ];
     }
 }
+

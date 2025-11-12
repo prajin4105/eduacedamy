@@ -197,4 +197,18 @@ public function certificates()
             }
         });
     }
+    protected static function booted()
+{
+    static::updated(function ($course) {
+        // Only trigger if the instructor is changing course details
+        // and not when something unrelated is updated in the background
+        if ($course->isDirty(['title', 'description', 'price', 'is_published'])) {
+            $instructor = $course->instructor;
+            if ($instructor) {
+                $instructor->notify(new \App\Notifications\CourseContentChanged($course->title));
+            }
+        }
+    });
+}
+
 }

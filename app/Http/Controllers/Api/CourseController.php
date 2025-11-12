@@ -283,7 +283,7 @@ class CourseController extends Controller
                     'description' => $video->description,
                     'duration_in_seconds' => $video->duration_seconds,
                     'sort_order' => $video->sort_order,
-                    'video_url' => $canAccess ? $video->video_url : null,
+                    'video_url' =>  $video->video_url,
                     'thumbnail_url' => $video->thumbnail_url,
                 ];
             }),

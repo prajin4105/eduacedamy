@@ -14,41 +14,44 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class TestController extends Controller
 {
-    public function showTest(int $courseId)
-    {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
+   public function showTest(int $courseId)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
 
-        $course = Course::findOrFail($courseId);
+    $course = Course::findOrFail($courseId);
 
-        if (!$this->hasCompletedCourse($user->id, $courseId)) {
-            return response()->json(['message' => 'Complete all videos to access the test'], 403);
-        }
+    if (!$this->hasCompletedCourse($user->id, $courseId)) {
+        return response()->json(['message' => 'Complete all videos to access the test'], 403);
+    }
 
-        $test = Test::with('questions')
-            ->where('course_id', $courseId)
-            ->first();
+    $test = Test::where('course_id', $courseId)->first();
 
-        if (!$test) {
-            return response()->json(['message' => 'No test available for this course'], 404);
-        }
+    if (!$test) {
+        return response()->json(['message' => 'No test available for this course'], 404);
+    }
 
-        // If already passed, do not show test
-        $hasPassed = UserTest::where('user_id', $user->id)
-            ->where('test_id', $test->id)
-            ->where('passed', true)
-            ->exists();
-        if ($hasPassed) {
-            return response()->json(['message' => 'Test already passed'], 403);
-        }
+    // If already passed, do not show test
+    $hasPassed = UserTest::where('user_id', $user->id)
+        ->where('test_id', $test->id)
+        ->where('passed', true)
+        ->exists();
+    if ($hasPassed) {
+        return response()->json(['message' => 'Test already passed'], 403);
+    }
 
-        // Hide correct answers
-        $questions = $test->questions->map(function (TestQuestion $q) {
+    // Fetch only random limited questions
+    $questions = TestQuestion::where('test_id', $test->id)
+        ->inRandomOrder()
+        ->take($test->total_questions ?? 5) // fallback to 5 if null
+        ->get()
+        ->map(function (TestQuestion $q) {
             return [
                 'id' => $q->id,
                 'question_text' => $q->question_text,
@@ -61,17 +64,19 @@ class TestController extends Controller
             ];
         });
 
-        return response()->json([
-            'test' => [
-                'id' => $test->id,
-                'title' => $test->title,
-                'description' => $test->description,
-                'course_id' => $test->course_id,
-                'max_attempts' => $test->max_attempts ?? 3, // Include max_attempts
-            ],
-            'questions' => $questions,
-        ]);
-    }
+    return response()->json([
+        'test' => [
+            'id' => $test->id,
+            'title' => $test->title,
+            'description' => $test->description,
+            'course_id' => $test->course_id,
+            'max_attempts' => $test->max_attempts ?? 3,
+            'total_questions' => $test->total_questions ?? 5,
+        ],
+        'questions' => $questions,
+    ]);
+}
+
 
     public function submitTest(Request $request)
     {

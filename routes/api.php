@@ -16,6 +16,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SubscriptionCourseController;
 use App\Http\Controllers\Api\ProfileController;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,15 +70,16 @@ Route::get('/instructors', [CourseController::class, 'instructors']);
 Route::get('/levels', [CourseController::class, 'levels']);
 Route::get('/plans', [PlanController::class, 'index']);
 Route::get('/plans/{slug}', [PlanController::class, 'show']);
+Route::get('/subscriptions/popular-plan', [SubscriptionController::class, 'getPopularPlan']);
 
 // Public review routes
-Route::get('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
+    Route::get('/courses/{course}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
 
 // Public certificate verification route
-Route::get('/verify-certificate/{certificateNumber}', [\App\Http\Controllers\Api\CertificateController::class, 'verifyCertificate']);
+    Route::get('/verify-certificate/{certificateNumber}', [\App\Http\Controllers\Api\CertificateController::class, 'verifyCertificate']);
 
 // Protected API routes (Sanctum)
-Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
 	Route::apiResource('enrollments', EnrollmentController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 	Route::get('/dashboard', [EnrollmentController::class, 'dashboard']);
 
@@ -108,10 +110,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 	Route::get('/courses/{courseId}/enrollment-status', [CourseProgressController::class, 'getCourseEnrollmentStatus']);
 });
-Route::match(['get', 'post'], '/create-order', [PaymentController::class, 'createOrder']);
+    Route::match(['get', 'post'], '/create-order', [PaymentController::class, 'createOrder']);
 
 // Protected enrollment check route
-Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
     Route::post('/enrollments/check', [EnrollmentController::class, 'checkEnrollment']);
     // Subscription routes
     Route::post('/subscriptions/subscribe', [SubscriptionController::class, 'subscribe']);
@@ -119,6 +121,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/subscriptions/status', [SubscriptionController::class, 'status']);
     Route::get('/subscriptions/courses', [SubscriptionCourseController::class, 'index']);
     Route::get('/subscriptions', [SubscriptionController::class, 'mySubscriptions']);
+    // routes/api.php or web.php
+
 });
 
 

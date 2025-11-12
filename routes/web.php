@@ -25,14 +25,14 @@ Route::post('/login', function (Request $request) {
     if (Auth::attempt($credentials, $request->boolean('remember'))) {
         $request->session()->regenerate();
         $user = Auth::user();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'user' => $user,
             'redirect' => match($user->role) {
                 'admin' => '/admin',
-                'instructor' => '/instructor', 
+                'instructor' => '/instructor',
                 'student' => '/dashboard',
                 default => '/'
             }
@@ -58,11 +58,11 @@ Route::post('/logout', function (Request $request) {
     Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
-    
+
     if ($request->expectsJson()) {
         return response()->json(['success' => true, 'message' => 'Logged out successfully']);
     }
-    
+
     return redirect('/');
 })->name('logout');
 

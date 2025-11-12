@@ -99,9 +99,6 @@
                 </svg>
                 <span>Download Certificate</span>
               </button>
-              <!-- <p v-else class="text-sm text-green-600 bg-green-100 inline-block px-4 py-2 rounded-lg">
-                🎓 Your certificate will be available shortly
-              </p> -->
             </div>
           </div>
         </div>
@@ -193,28 +190,28 @@
             <!-- Page indicator -->
             <div class="flex items-center justify-between mb-4">
               <div class="text-sm text-gray-600">
-                Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+                Question <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
               </div>
               <div class="text-sm text-gray-600">
-                Showing questions {{ pageStartIndex + 1 }}–{{ Math.min(pageStartIndex + pageSize, questions.length) }}
+                Question {{ pageStartIndex + 1 }} of {{ questions.length }}
               </div>
             </div>
 
-            <!-- Questions (5 per page) -->
+            <!-- Questions (1 per page) -->
             <div class="space-y-6">
               <div
-                v-for="(q, index) in paginatedQuestions"
-                :key="q.id"
+                v-if="paginatedQuestions.length > 0"
+                :key="paginatedQuestions[0].id"
                 class="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-300 transition-colors"
               >
                 <div class="flex items-start mb-4">
                   <div class="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold mr-3">
-                    {{ pageStartIndex + index + 1 }}
+                    {{ pageStartIndex + 1 }}
                   </div>
                   <div class="flex-1">
-                    <p class="font-semibold text-gray-900 text-lg">{{ q.question_text }}</p>
+                    <p class="font-semibold text-gray-900 text-lg">{{ paginatedQuestions[0].question_text }}</p>
                   </div>
-                  <div v-if="answers[q.id]" class="flex-shrink-0 ml-2">
+                  <div v-if="answers[paginatedQuestions[0].id]" class="flex-shrink-0 ml-2">
                     <svg class="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
@@ -223,16 +220,16 @@
 
                 <div class="space-y-3 ml-11">
                   <label
-                    v-for="(label, key) in q.options"
+                    v-for="(label, key) in paginatedQuestions[0].options"
                     :key="key"
                     class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:bg-indigo-50 hover:border-indigo-300"
-                    :class="answers[q.id] === key ? 'bg-indigo-50 border-indigo-500' : 'border-gray-200'"
+                    :class="answers[paginatedQuestions[0].id] === key ? 'bg-indigo-50 border-indigo-500' : 'border-gray-200'"
                   >
                     <input
                       type="radio"
-                      :name="`q_${q.id}`"
+                      :name="`q_${paginatedQuestions[0].id}`"
                       :value="key"
-                      v-model="answers[q.id]"
+                      v-model="answers[paginatedQuestions[0].id]"
                       class="w-5 h-5 text-indigo-600 focus:ring-indigo-500"
                       @change="saveProgress"
                     />
@@ -333,7 +330,7 @@
                     <p class="font-semibold text-gray-900">Score: {{ a.score }}%</p>
                     <p class="text-sm" :class="a.passed ? 'text-green-600' : 'text-gray-600'">
                       {{ a.passed ? '✅ Passed' : '❌ Failed' }}
-                    </p>    
+                    </p>
                   </div>
                 </div>
                 <div class="text-right">
@@ -341,29 +338,7 @@
                   <p class="text-xs text-gray-500">{{ new Date(a.attempted_at).toLocaleTimeString() }}</p>
                 </div>
               </div>
-              <details class="mt-3">
-                <summary class="cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-700 select-none">
-                  View detailed answers →
-                </summary>
-                <div class="mt-3 space-y-2 bg-white rounded-lg p-4 border border-gray-200">
-                  <div
-                    v-for="(ans, index) in a.answers"
-                    :key="ans.question_id"
-                    class="text-sm flex items-start p-2 rounded"
-                    :class="ans.is_correct ? 'bg-green-50' : 'bg-red-50'"
-                  >
-                    <span :class="ans.is_correct ? 'text-green-600' : 'text-red-600'" class="mr-2">
-                      {{ ans.is_correct ? '✓' : '✗' }}
-                    </span>
-                    <div class="flex-1">
-                      <span class="font-medium text-gray-700">Question {{ index + 1 }}:</span>
-                      <span class="text-gray-600 ml-2">Selected: {{ ans.selected || 'None' }}</span>
-                      <span class="text-gray-400 mx-1">|</span>
-                      <span class="text-gray-600">Correct: {{ ans.correct }}</span>
-                    </div>
-                  </div>
-                </div>
-              </details>
+
             </div>
           </div>
         </div>
@@ -401,8 +376,8 @@ const maxTabSwitches = ref(3);
 const showWarning = ref(false);
 const violationInProgress = ref(false); // Prevent double counting
 
-// Pagination
-const pageSize = 5;
+// Pagination - CHANGED TO 1
+const pageSize = 1;
 const currentPage = ref(1);
 const totalPages = computed(() => Math.max(1, Math.ceil(questions.value.length / pageSize)));
 const pageStartIndex = computed(() => (currentPage.value - 1) * pageSize);

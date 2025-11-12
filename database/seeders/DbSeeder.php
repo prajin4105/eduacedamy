@@ -168,7 +168,7 @@ class DbSeeder extends Seeder
             ]);
 
             // Add 5 questions for each test
-            for ($q = 1; $q <= 5; $q++) {
+            for ($q = 1; $q <= 20; $q++) {
                 DB::table('test_questions')->insert([
                     'test_id' => $testId,
                     'question_text' => $faker->sentence(8),

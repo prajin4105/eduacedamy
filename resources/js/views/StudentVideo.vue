@@ -366,6 +366,8 @@ const isEnrolled = ref(false);
 const canAccess = ref(false);
 const timeWatched = ref(0);
 const videoDuration = ref(0);
+const fullVideoUrl = computed(() => video.value?.video_url || null);
+
 const completionThreshold = 0.9; // 90% watched to mark as completed
 
 // Test-related variables
@@ -732,7 +734,7 @@ const goToCourse = () => {
 };
 
 // Video event handlers
-const onVideoLoaded = () => {
+const onVideoLoaded = (event) => {
   if (videoPlayer.value) {
     videoDuration.value = videoPlayer.value.duration;
     console.log('Video loaded:', {
@@ -743,6 +745,7 @@ const onVideoLoaded = () => {
     });
   }
 };
+
 
 const onTimeUpdate = () => {
   if (videoPlayer.value && videoDuration.value > 0) {

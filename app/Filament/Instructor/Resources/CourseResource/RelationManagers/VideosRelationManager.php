@@ -9,12 +9,14 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
 use Filament\Actions;
+use App\Notifications\CourseContentChanged;
+use Filament\Notifications\Notification;
 
 class VideosRelationManager extends RelationManager
 {
     protected static string $relationship = 'videos'; // assumes Course::videos() exists
 
-     public function form(Schema $schema): Schema
+    public function form(Schema $schema): Schema
     {
         return $schema->schema([
             Forms\Components\TextInput::make('title')
@@ -40,7 +42,7 @@ class VideosRelationManager extends RelationManager
         ]);
     }
 
-    public function table(Table $table): Table
+    public function table(Tables\Table $table): Tables\Table
     {
         return $table
             ->columns([
@@ -49,14 +51,35 @@ class VideosRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('video_url')->limit(30)->label('Video URL'),
             ])
             ->headerActions([
-                Actions\CreateAction::make(),
+                Actions\CreateAction::make()
+                    ->after(fn() => $this->notifyInstructor()),
             ])
             ->actions([
                 Actions\EditAction::make(),
-                Actions\DeleteAction::make(),
+                Actions\DeleteAction::make()
+                    ->after(fn() => $this->notifyInstructor()),
             ])
             ->bulkActions([
-                Actions\DeleteBulkAction::make(),
+                Actions\DeleteBulkAction::make()
+                    ->after(fn() => $this->notifyInstructor()),
             ]);
+    }
+
+    protected function notifyInstructor(): void
+    {
+        $course = $this->getOwnerRecord(); // correct method to get parent model
+        $instructor = $course?->instructor;
+
+        if ($instructor) {
+            // Save a DB notification
+            $instructor->notify(new CourseContentChanged($course->title));
+
+            // Optional: Filament toast message
+            Notification::make()
+                ->title('Course Updated')
+                ->body('A video was added or removed. Please review your test questions.')
+                ->success()
+                ->send();
+        }
     }
 }
