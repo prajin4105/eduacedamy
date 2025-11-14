@@ -275,6 +275,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const props = defineProps({
+  slug: {
+    type: String,
+    default: null
+  }
+});
+
+const { goto } = useMaskedNavigation();
 
 const router = useRouter();
 const route = useRoute();
@@ -397,7 +407,12 @@ const fetchCourseData = async () => {
     enrollmentStatus.value = null;
 
     // Fetch course data
-    const response = await axios.get(`/courses/${route.params.slug}`);
+    const courseSlug = props.slug || route.params.slug;
+    if (!courseSlug) {
+      error.value = 'Course slug is required';
+      return;
+    }
+    const response = await axios.get(`/courses/${courseSlug}`);
     course.value = response.data;
 
     if (!course.value) {
@@ -609,11 +624,11 @@ const goToVideo = (videoOrId) => {
     videoId = videoOrId;
   }
 
-  router.push(`/course/${route.params.slug}/video/${videoId}`);
+  goto('studentVideo', { slug: props.slug || route.params.slug, videoId });
 };
 
 const goToCourseDetail = () => {
-  router.push(`/courses/${route.params.slug}`);
+  goto('courseDetail', { slug: props.slug || route.params.slug });
 };
 
 const handleStorageChange = (event) => {
@@ -733,7 +748,7 @@ const checkTestStatus = async () => {
 };
 
 const startTest = () => {
-  window.location.href = `/student/course/${course.value.id}/test`;
+  goto('courseTest', { courseId: course.value.id });
 };
 
 // Initialize

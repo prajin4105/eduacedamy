@@ -351,6 +351,20 @@ import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import progressService from '../services/ProgressService';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const props = defineProps({
+  slug: {
+    type: String,
+    default: null
+  },
+  videoId: {
+    type: [String, Number],
+    default: null
+  }
+});
+
+const { goto } = useMaskedNavigation();
 
 const router = useRouter();
 const route = useRoute();
@@ -465,7 +479,7 @@ const checkAuthentication = () => {
 };
 // Redirect to login
 const redirectToLogin = () => {
-  router.push('/login');
+  goto('login');
 };
 
 // Enhanced enrollment checking
@@ -592,7 +606,12 @@ const fetchData = async () => {
     }
 
     // 1. Fetch course details (public endpoint, but may include enrollment status)
-    const response = await axios.get(`/courses/${route.params.slug}`);
+    const courseSlug = props.slug || route.params.slug;
+    if (!courseSlug) {
+      error.value = "Course slug is required";
+      return;
+    }
+    const response = await axios.get(`/courses/${courseSlug}`);
     course.value = response.data;
 
     if (!course.value || !course.value.videos) {
@@ -601,7 +620,7 @@ const fetchData = async () => {
     }
 
     // Find the requested video
-    const videoId = route.params.videoId;
+    const videoId = props.videoId || route.params.videoId;
     video.value = course.value.videos.find(v => String(v.id) === String(videoId));
 
     if (!video.value) {
@@ -725,12 +744,12 @@ const goToVideo = async (targetVideo) => {
   }
 
   // Update the URL with consistent routing
-  router.push(`/course/${route.params.slug}/video/${targetVideo.id}`);
+  goto('studentVideo', { slug: props.slug || route.params.slug, videoId: targetVideo.id });
 };
 
 // Navigate to course
 const goToCourse = () => {
-  router.push(`/course/${route.params.slug}`);
+  goto('studentCourse', { slug: props.slug || route.params.slug });
 };
 
 // Video event handlers
@@ -855,8 +874,8 @@ const formatTime = (timeInSeconds) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Watch for route changes
-watch(() => route.params.videoId, async (newVideoId, oldVideoId) => {
+// Watch for videoId changes (from props or route)
+watch(() => props.videoId || route.params.videoId, async (newVideoId, oldVideoId) => {
   if (course.value && newVideoId !== oldVideoId) {
     const videoId = parseInt(newVideoId);
     const newVideo = course.value.videos.find(v => v.id === videoId);
@@ -916,7 +935,7 @@ const checkTestStatus = async () => {
 };
 
 const startTest = () => {
-  router.push(`/student/course/${course.value.id}/test`);
+  goto('courseTest', { courseId: course.value.id });
 };
 
 const downloadCertificate = async () => {

@@ -119,13 +119,13 @@
 
               <!-- Action Button -->
               <div class="mt-6">
-                <router-link
+                <a
                   v-if="enrollment.course?.slug"
-                  :to="`/course/${enrollment.course.slug}`"
-                  class="block text-center bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+                  @click.prevent="goto('studentCourse', { slug: enrollment.course.slug })"
+                  class="block text-center bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition cursor-pointer"
                 >
                   {{ enrollment.status === 'completed' ? 'Go to Course' : 'Continue Learning' }}
-                </router-link>
+                </a>
                 <button
                   v-else
                   disabled
@@ -158,12 +158,12 @@
           <p class="text-gray-500 mb-6">
             Start your learning journey by enrolling in a course
           </p>
-          <router-link
-            to="/courses"
-            class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700"
+          <a
+            @click.prevent="goto('courses')"
+            class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 cursor-pointer"
           >
             Browse Courses
-          </router-link>
+          </a>
         </div>
       </div>
     </div>
@@ -184,6 +184,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const { goto } = useMaskedNavigation();
 const coursesToShow = ref(6); // initially show 6
 const loadStep = 3; // show 3 more each time
 

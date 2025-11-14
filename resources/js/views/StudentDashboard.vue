@@ -81,8 +81,8 @@
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-xl font-semibold text-gray-800">Available Courses</h3>
               <div class="space-x-4">
-                <router-link to="/courses" class="text-blue-600 hover:underline">View All Courses</router-link>
-                <router-link to="/subscriptions" class="text-indigo-600 hover:underline">My Subscriptions</router-link>
+                <a @click.prevent="goto('courses')" class="text-blue-600 hover:underline cursor-pointer">View All Courses</a>
+                <a @click.prevent="goto('subscriptions')" class="text-indigo-600 hover:underline cursor-pointer">My Subscriptions</a>
               </div>
             </div>
 
@@ -135,9 +135,9 @@
               </svg>
               <h4 class="text-lg font-semibold text-gray-600 mb-2">No Available Courses</h4>
               <p class="text-gray-500">Check back later for new courses or browse all courses.</p>
-              <router-link to="/courses" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <a @click.prevent="goto('courses')" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
                 Browse All Courses
-              </router-link>
+              </a>
             </div>
           </div>
         </div>
@@ -210,7 +210,7 @@ const fetchDashboardData = async () => {
 
 // Navigate to course
 const goToCourse = (course) => {
-  router.push(`/course/${course.slug}`);
+  goto('studentCourse', { slug: course.slug });
 };
 
 // Enroll in course

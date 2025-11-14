@@ -8,12 +8,12 @@
         <p class="text-sm text-center text-indigo-100">
           Join us today and start exploring amazing features crafted just for you.
         </p>
-        <router-link
-          to="/login"
-          class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition"
+        <a
+          @click.prevent="goto('login')"
+          class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition cursor-pointer"
         >
           Sign In Instead
-        </router-link>
+        </a>
       </div>
 
       <!-- Right Side (Form Panel) -->
@@ -22,9 +22,9 @@
           <h2 class="text-3xl font-extrabold text-gray-900">Create Your Account</h2>
           <p class="mt-2 text-sm text-gray-600">
             Or
-            <router-link to="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <a @click.prevent="goto('login')" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
               sign in to your account
-            </router-link>
+            </a>
           </p>
         </div>
 
@@ -112,8 +112,10 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { useMaskedNavigation } from '../utils/navigation'
 
 const router = useRouter()
+const { goto } = useMaskedNavigation()
 
 const form = ref({
   name: '',
@@ -136,7 +138,7 @@ const register = async () => {
   try {
     const response = await axios.post('http://127.0.0.1:8000/api/register', form.value)
     successMessage.value = 'Registration successful! Redirecting to login...'
-    setTimeout(() => router.push('/login'), 2000)
+    setTimeout(() => goto('login'), 2000)
   } catch (err) {
     if (err.response?.status === 422) {
       errors.value = err.response.data.errors || {}

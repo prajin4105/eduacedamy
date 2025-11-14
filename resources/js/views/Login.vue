@@ -8,20 +8,20 @@
         <p class="text-sm text-center text-indigo-100">
           Access your account and continue your learning journey.
         </p>
-        <router-link
-          to="/register"
-          class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition"
+        <a
+          @click.prevent="goto('register')"
+          class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition cursor-pointer"
         >
           Create Account
-        </router-link>
+        </a>
       </div>
 
       <!-- Right Side (Login Form) -->
       <div class="w-full md:w-1/2 p-8 sm:p-10">
         <div class="text-center mb-8">
-          <router-link to="/" class="inline-block mb-4">
+          <a @click.prevent="goto('home')" class="inline-block mb-4 cursor-pointer">
             <h2 class="text-3xl font-bold text-indigo-600">EduAcademy</h2>
-          </router-link>
+          </a>
           <h2 class="text-2xl font-extrabold text-gray-900">Sign in to your account</h2>
         </div>
 
@@ -67,12 +67,12 @@
               <span class="ml-2">Remember me</span>
             </label>
 
-            <router-link
-              to="/forgot-password"
-              class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            <a
+              @click.prevent="goto('forgotPassword')"
+              class="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
             >
               Forgot your password?
-            </router-link>
+            </a>
           </div>
 
           <button
@@ -95,9 +95,9 @@
         <div class="mt-8 text-center">
           <p class="text-sm text-gray-600">
             Don’t have an account?
-            <router-link to="/register" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <a @click.prevent="goto('register')" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
               Sign up here
-            </router-link>
+            </a>
           </p>
         </div>
       </div>
@@ -110,9 +110,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
+import { useMaskedNavigation } from '../utils/navigation'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { goto } = useMaskedNavigation()
 
 const form = ref({
   email: '',
@@ -179,9 +181,9 @@ const login = async () => {
           window.location.href = '/instructor/login'
         }
       } else if (role === 'student') {
-        router.replace('/dashboard')
+        goto('dashboard')
       } else {
-        router.replace('/')
+        goto('home')
       }
     }, 300)
   } catch (error) {

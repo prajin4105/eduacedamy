@@ -19,17 +19,17 @@
               </p>
               <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                 <div class="rounded-md shadow">
-                  <router-link to="/courses" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 md:py-4 md:text-lg md:px-10">
+                  <a @click.prevent="goto('courses')" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 md:py-4 md:text-lg md:px-10 cursor-pointer">
                     Browse Courses
-                  </router-link>
+                  </a>
                 </div>
                 <div class="mt-3 sm:mt-0 sm:ml-3">
-                  <router-link v-if="!user" to="/login" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10">
+                  <a v-if="!user" @click.prevent="goto('login')" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10 cursor-pointer">
                     Get Started
-                  </router-link>
-                  <router-link v-else-if="user.role === 'student'" to="/dashboard" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10">
+                  </a>
+                  <a v-else-if="user.role === 'student'" @click.prevent="goto('dashboard')" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10 cursor-pointer">
                     My Courses
-                  </router-link>
+                  </a>
                 </div>
               </div>
             </div>
@@ -78,14 +78,14 @@
   <div class="flex-1 flex flex-col justify-between p-6 space-y-4">
     <!-- Title & Description -->
     <div>
-      <router-link :to="`/courses/${course.slug}`" class="block">
+      <a @click.prevent="goto('courseDetail', { slug: course.slug })" class="block cursor-pointer">
         <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
           {{ course.title }}
         </h3>
         <p class="mt-2 text-gray-600 text-sm line-clamp-2">
           {{ course.excerpt || 'Learn from industry experts with this comprehensive course.' }}
         </p>
-      </router-link>
+      </a>
     </div>
 
     <!-- Instructor + Price -->
@@ -111,13 +111,13 @@
       <!-- Button -->
       <div>
         <!-- Start Learning -->
-        <router-link
+        <a
           v-if="user && user.role === 'student' && (course.can_access === true || isEnrolled(course.id))"
-          :to="`/courses/${course.slug}`"
-          class="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 font-medium transition"
+          @click.prevent="goto('courseDetail', { slug: course.slug })"
+          class="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 font-medium transition cursor-pointer"
         >
           Start Learning
-        </router-link>
+        </a>
 
         <!-- Buy / Subscribe -->
         <button
@@ -131,13 +131,13 @@
         </button>
 
         <!-- Not logged in -->
-        <router-link
+        <a
           v-else
-          to="/login"
-          class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium transition"
+          @click.prevent="goto('login')"
+          class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium transition cursor-pointer"
         >
           Enroll Now
-        </router-link>
+        </a>
       </div>
     </div>
   </div>
@@ -192,6 +192,9 @@ import { ref, onMounted, inject, computed } from 'vue';
 import { AcademicCapIcon, BookOpenIcon, ClockIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const { goto } = useMaskedNavigation();
 
 
 const authStore = useAuthStore();
@@ -301,7 +304,7 @@ const buyCourse = async (course) => {
       message.value = 'This course requires a subscription. Please subscribe to a plan to access this course.';
       messageType.value = 'error';
       setTimeout(() => {
-        window.location.href = '/pricing';
+        goto('pricing');
       }, 2000);
       return;
     }
@@ -381,7 +384,7 @@ const logout = async () => {
     // Clear auth store and localStorage
     authStore.clearAuth();
     // Redirect to home page
-    window.location.href = '/';
+    goto('home');
   }
 };
 
@@ -389,7 +392,7 @@ const logout = async () => {
 const handleCourseAction = (course) => {
   if (course.requires_subscription || course.available_plans?.length > 0) {
     // Redirect to pricing page for subscription courses
-    window.location.href = '/pricing';
+    goto('pricing');
   } else {
     // Regular course purchase
     buyCourse(course);

@@ -90,13 +90,13 @@
         <p class="text-gray-600 mb-6">
           Complete your first course to earn your first certificate!
         </p>
-        <router-link
-          to="/courses"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        <a
+          @click.prevent="goto('courses')"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
         >
           <i class="fas fa-book mr-2"></i>
           Browse Courses
-        </router-link>
+        </a>
       </div>
     </div>
   </div>
@@ -105,6 +105,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const { goto } = useMaskedNavigation();
 
 const certificates = ref([]);
 const loading = ref(true);

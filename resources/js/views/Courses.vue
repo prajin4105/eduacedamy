@@ -272,9 +272,9 @@
                     <div class="flex-1 flex flex-col justify-between">
                       <div>
                         <h2 class="text-xl font-bold text-gray-900 mb-2">
-                          <router-link :to="`/courses/${course.slug}`" class="hover:text-indigo-600 line-clamp-2">
+                          <a @click.prevent="goto('courseDetail', { slug: course.slug })" class="hover:text-indigo-600 line-clamp-2 cursor-pointer">
                             {{ course.title }}
-                          </router-link>
+                          </a>
                         </h2>
 
                         <!-- Fixed description rendering with HTML support -->
@@ -393,15 +393,15 @@
                         </div>
 
                         <!-- Single button for all courses -->
-                        <router-link
-                          :to="`/courses/${course.slug}`"
-                          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                        <a
+                          @click.prevent="goto('courseDetail', { slug: course.slug })"
+                          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 cursor-pointer"
                         >
                           {{ course.is_enrolled ? 'Continue Learning' : 'View Details' }}
                           <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                           </svg>
-                        </router-link>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -506,6 +506,9 @@
 import { ref, watch, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
+import { useMaskedNavigation } from '../utils/navigation';
+
+const { goto } = useMaskedNavigation();
 
 const route = useRoute();
 const router = useRouter();

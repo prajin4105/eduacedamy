@@ -10,7 +10,7 @@
             <div class="font-semibold">{{ s.plan?.name }}</div>
             <div class="text-sm text-gray-600">Status: {{ s.status }} · Ends: {{ s.ends_at || '—' }}</div>
           </div>
-          <router-link :to="`/pricing/${s.plan?.slug}`" class="text-indigo-600 text-sm">View plan</router-link>
+          <a @click.prevent="goto('planDetail', { slug: s.plan?.slug })" class="text-indigo-600 text-sm cursor-pointer">View plan</a>
         </div>
       </div>
     </div>
@@ -20,6 +20,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const { goto } = useMaskedNavigation();
 
 const subs = ref([]);
 const loading = ref(false);

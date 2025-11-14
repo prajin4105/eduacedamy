@@ -18,7 +18,7 @@
             <img :src="course.image_url || course.image || placeholder(course.title)" class="w-full h-full object-cover" />
           </div>
           <div class="mt-3 font-medium">{{ course.title }}</div>
-          <router-link :to="`/courses/${course.slug}`" class="text-indigo-600 text-sm">View course</router-link>
+          <a @click.prevent="goto('courseDetail', { slug: course.slug })" class="text-indigo-600 text-sm cursor-pointer">View course</a>
         </div>
       </div>
     </div>
@@ -29,6 +29,16 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
+import { useMaskedNavigation } from '../utils/navigation';
+
+const props = defineProps({
+  slug: {
+    type: String,
+    default: null
+  }
+});
+
+const { goto } = useMaskedNavigation();
 
 const route = useRoute();
 const plan = ref({ courses: [] });
@@ -49,7 +59,12 @@ const subscribe = async (p) => {
 onMounted(async () => {
   loading.value = true;
   try {
-    const { data } = await axios.get(`/plans/${route.params.slug}`);
+    const planSlug = props.slug || route.params.slug;
+    if (!planSlug) {
+      console.error('Plan slug is required');
+      return;
+    }
+    const { data } = await axios.get(`/plans/${planSlug}`);
     plan.value = data;
   } finally {
     loading.value = false;

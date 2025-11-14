@@ -1,231 +1,156 @@
 <template>
-  <nav class="bg-white shadow-lg">
+  <nav class="bg-white shadow-sm border-b">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
-        <!-- Left: Logo + Links -->
-        <div class="flex">
-          <div class="flex-shrink-0 flex items-center">
-            <router-link to="/" class="text-xl font-bold text-indigo-600">
-              EduAcademy
-            </router-link>
-          </div>
+      <div class="flex justify-between h-16 items-center">
 
-          <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-            <router-link
-              to="/"
-              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
-              :class="$route.path === '/' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-            >
-              Home
-            </router-link>
+        <!-- Logo -->
+        <div class="flex items-center space-x-8">
+          <span @click.prevent="goto('home')" class="text-2xl font-bold text-indigo-600 cursor-pointer">
+            EduAcademy
+          </span>
 
-            <router-link
-              to="/courses"
-              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
-              :class="$route.path === '/courses' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-            >
-              Courses
-            </router-link>
-
-            <router-link
-              to="/pricing"
-              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
-              :class="$route.path === '/pricing' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-            >
-              Pricing
-            </router-link>
-
-            <router-link
-              to="/subscriptions"
-              class="border-b-2 text-sm font-medium inline-flex items-center px-1 pt-1"
-              :class="$route.path === '/subscriptions' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-            >
-              My Subscriptions
-            </router-link>
+          <!-- Desktop Nav Items -->
+          <div class="hidden sm:flex space-x-6">
+            <span @click.prevent="goto('home')" class="nav-item">Home</span>
+            <span @click.prevent="goto('courses')" class="nav-item">Courses</span>
+            <span @click.prevent="goto('pricing')" class="nav-item">Pricing</span>
+            <span @click.prevent="goto('subscriptions')" class="nav-item">Subscriptions</span>
           </div>
         </div>
 
-        <!-- Right: Auth Buttons / Profile -->
-        <div class="hidden sm:ml-6 sm:flex sm:items-center">
+        <!-- Right Side -->
+        <div class="hidden sm:flex items-center space-x-4">
+
+          <!-- Guest -->
           <template v-if="!isAuthenticated">
-            <router-link
-              to="/login"
-              class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Log in
-            </router-link>
+  <button type="button" @click="gotoLogin" class="btn-ghost">Log in</button>
+  <button type="button" @click="gotoRegister" class="btn-primary">Sign up</button>
+</template>
 
-            <router-link
-              to="/register"
-              class="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-            >
-              Sign up
-            </router-link>
-          </template>
 
+          <!-- Logged In -->
           <template v-else>
-            <!-- Profile & Dropdown -->
-            <div class="relative ml-3 flex items-center space-x-2" ref="dropdownRef">
-              <!-- Profile Picture (non-clickable) -->
-              <div class="h-10 w-10 rounded-full overflow-hidden border-2 border-indigo-500">
+            <div class="relative flex items-center space-x-2" ref="dropdownRef">
+
+              <div class="h-10 w-10 rounded-full overflow-hidden border border-indigo-500">
                 <img
                   v-if="profilePictureUrl"
                   :src="profilePictureUrl"
-                  :alt="user?.name || 'User'"
                   class="h-full w-full object-cover"
                 />
-                <div
-                  v-else
-                  class="h-full w-full bg-indigo-600 flex items-center justify-center"
-                >
-                  <span class="text-white font-semibold text-lg">
-                    {{ user?.name?.charAt(0).toUpperCase() || 'U' }}
-                  </span>
+                <div v-else class="avatar-fallback">
+                  {{ user?.name?.charAt(0).toUpperCase() }}
                 </div>
               </div>
 
-              <!-- Dropdown Arrow -->
-              <button
-                @click="toggleDropdown"
-                class="text-gray-600 hover:text-indigo-600 focus:outline-none"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5 transition-transform duration-200"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  :class="{ 'transform rotate-180': isDropdownOpen }"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+              <button @click="toggleDropdown" class="dropdown-toggle">▼</button>
 
-              <!-- Dropdown Menu -->
               <transition name="fade">
                 <div
                   v-if="isDropdownOpen"
-                  class="absolute right-0 top-full mt-2 w-56 bg-white shadow-xl rounded-lg border border-gray-100 z-50"
+                  class="dropdown-menu"
                 >
-                  <div class="py-2">
-                    <router-link
-                      to="/dashboard"
-                      @click="closeDropdown"
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <svg class="mr-3 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
-                      </svg>
-                      My Courses
-                    </router-link>
+                  <span @click.prevent="goto('dashboard')" class="dropdown-item">My Courses</span>
+                  <span @click.prevent="goto('certificates')" class="dropdown-item">Certificates</span>
+                  <span @click.prevent="goto('profile')" class="dropdown-item">Profile</span>
 
-                    <router-link
-                      to="/certificates"
-                      @click="closeDropdown"
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <svg class="mr-3 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
-                      </svg>
-                      Certificates
-                    </router-link>
+                  <div class="divider"></div>
 
-                    <router-link
-                      to="/profile"
-                      @click="closeDropdown"
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <svg class="mr-3 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Profile
-                    </router-link>
-
-                    <div class="border-t border-gray-100 my-1"></div>
-
-                    <button
-                      @click="handleLogout"
-                      class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                    >
-                      <svg class="mr-3 h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                      </svg>
-                      Logout
-                    </button>
-                  </div>
+                  <button @click="handleLogout" class="dropdown-item text-red-600">
+                    Logout
+                  </button>
                 </div>
               </transition>
             </div>
           </template>
+
         </div>
+
       </div>
     </div>
   </nav>
 </template>
-
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+
+// GLOBAL 20-char mask generator
+const rand = (length = 20) => {
+  return Array.from({ length }, () =>
+    Math.random().toString(36)[2] || "x"
+  ).join("");
+};
+
+const STORAGE_PREFIX = "masked:";
 
 export default {
-  name: 'Navbar',
   setup() {
-    const authStore = useAuthStore();
     const router = useRouter();
-    const isAuthenticated = computed(() => authStore.isAuthenticated);
-    const user = computed(() => authStore.user);
-    const isDropdownOpen = ref(false);
-    const dropdownRef = ref(null);
+    const auth = useAuthStore();
 
-    const getProfilePictureUrl = (path) => {
-      if (!path) return null;
-      if (path.startsWith('http')) return path;
-      return `/storage/${path}`;
-    };
+    const isAuthenticated = computed(() => auth.isAuthenticated);
+    const user = computed(() => auth.user);
 
     const profilePictureUrl = computed(() => {
-      return user.value?.profile_picture
-        ? getProfilePictureUrl(user.value.profile_picture)
-        : null;
+      const p = user.value?.profile_picture;
+      return p ? (p.startsWith("http") ? p : `/storage/${p}`) : null;
     });
 
-    const toggleDropdown = () => {
-      isDropdownOpen.value = !isDropdownOpen.value;
+    const saveMaskState = (mask, state) => {
+      try {
+        localStorage.setItem(
+          STORAGE_PREFIX + mask,
+          JSON.stringify({ ...state, ts: Date.now() })
+        );
+      } catch (e) {}
     };
 
-    const closeDropdown = () => {
-      isDropdownOpen.value = false;
+    const goto = (page, params = {}) => {
+      const mask = rand();
+      saveMaskState(mask, { page, params });
+
+      router.push({
+        name: "MaskedPage",
+        params: { mask },
+        state: { page, params }
+      });
     };
 
-    const handleLogout = async () => {
-      closeDropdown();
-      await authStore.logout();
-      router.push('/login');
-    };
+    // ---- CORRECT FIXED VERSION ----
+    const gotoLogin = () => goto("login");
+    const gotoRegister = () => goto("register");
 
-    const handleClickOutside = (event) => {
-      if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    const dropdownRef = ref(null);
+    const isDropdownOpen = ref(false);
+
+    const toggleDropdown = () => (isDropdownOpen.value = !isDropdownOpen.value);
+    const closeDropdown = () => (isDropdownOpen.value = false);
+
+    const handleClickOutside = (e) => {
+      if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
         isDropdownOpen.value = false;
       }
     };
 
-    onMounted(() => {
-      document.addEventListener('click', handleClickOutside);
-    });
+    onMounted(() => document.addEventListener("click", handleClickOutside));
+    onUnmounted(() => document.removeEventListener("click", handleClickOutside));
 
-    onUnmounted(() => {
-      document.removeEventListener('click', handleClickOutside);
-    });
+    const handleLogout = async () => {
+      closeDropdown();
+      await auth.logout();
+      goto("login");
+    };
 
     return {
+      goto,
+      gotoLogin,
+      gotoRegister,
       isAuthenticated,
       user,
       profilePictureUrl,
-      isDropdownOpen,
       dropdownRef,
+      isDropdownOpen,
       toggleDropdown,
       closeDropdown,
       handleLogout
@@ -234,11 +159,50 @@ export default {
 };
 </script>
 
-<style>
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s ease;
+
+
+<style scoped>
+.nav-item {
+  @apply cursor-pointer text-gray-600 hover:text-indigo-600 font-medium transition;
 }
-.fade-enter-from, .fade-leave-to {
+
+.btn-ghost {
+  @apply text-gray-700 hover:text-indigo-600 font-medium px-3 py-2 transition;
+}
+
+.btn-primary {
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 transition;
+}
+
+.avatar-fallback {
+  @apply h-full w-full bg-indigo-600 flex items-center justify-center text-white text-lg;
+}
+
+.dropdown-toggle {
+  @apply text-gray-600 hover:text-indigo-600 cursor-pointer transition;
+}
+
+.dropdown-menu {
+  @apply absolute right-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg py-2 z-50;
+}
+
+.dropdown-item {
+  @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition;
+}
+
+.divider {
+  @apply border-t border-gray-200 my-2;
+}
+
+/* Smooth fade animation */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
+
 </style>

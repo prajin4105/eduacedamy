@@ -352,8 +352,18 @@ import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 
+const props = defineProps({
+  courseId: {
+    type: [Number, String],
+    default: null
+  }
+});
+
 const route = useRoute();
-const courseId = Number(route.params.courseId || route.params.id);
+const courseId = computed(() => {
+  const id = props.courseId || route.params.courseId || route.params.id;
+  return Number(id);
+});
 
 const loading = ref(true);
 const submitting = ref(false);
@@ -550,7 +560,7 @@ const handleBeforeUnload = (e) => {
 
     // Try to submit synchronously
     const payload = {
-      course_id: courseId,
+      course_id: courseId.value,
       answers: questions.value.map((q) => ({
         question_id: Number(q.id),
         selected_option: answers.value[q.id] ?? null
@@ -570,16 +580,16 @@ const handleBeforeUnload = (e) => {
 
 const saveProgress = () => {
   const progressData = {
-    courseId,
+    courseId: courseId.value,
     answers: answers.value,
     timeRemaining: timeRemaining.value,
     tabSwitches: tabSwitchCount.value
   };
-  localStorage.setItem(`test_progress_${courseId}`, JSON.stringify(progressData));
+  localStorage.setItem(`test_progress_${courseId.value}`, JSON.stringify(progressData));
 };
 
 const loadProgress = () => {
-  const saved = localStorage.getItem(`test_progress_${courseId}`);
+  const saved = localStorage.getItem(`test_progress_${courseId.value}`);
   if (saved) {
     const data = JSON.parse(saved);
     answers.value = data.answers || {};
@@ -589,7 +599,7 @@ const loadProgress = () => {
 };
 
 const clearProgress = () => {
-  localStorage.removeItem(`test_progress_${courseId}`);
+  localStorage.removeItem(`test_progress_${courseId.value}`);
 };
 
 const autoSubmit = async (reason) => {
@@ -617,7 +627,7 @@ const prevPage = async () => {
 const loadTest = async () => {
   try {
     loading.value = true;
-    const st = await axios.get(`/test/status/${courseId}`);
+    const st = await axios.get(`/test/status/${courseId.value}`);
     status.value = st.data;
 
     if (!status.value.hasTest) {
@@ -629,7 +639,7 @@ const loadTest = async () => {
       return;
     }
 
-    const { data } = await axios.get(`/test/${courseId}`);
+    const { data } = await axios.get(`/test/${courseId.value}`);
     test.value = data.test;
     questions.value = data.questions;
   } catch (e) {
@@ -645,7 +655,7 @@ const submit = async (isAuto = false) => {
 
     // Build payload including unanswered as null (allow submission even with unanswered questions)
     const payload = {
-      course_id: courseId,
+      course_id: courseId.value,
       answers: questions.value.map((q) => ({
         question_id: Number(q.id),
         selected_option: answers.value[q.id] ?? null
@@ -661,7 +671,7 @@ const submit = async (isAuto = false) => {
     await exitFullscreen();
 
     // reload status
-    const st = await axios.get(`/test/status/${courseId}`);
+    const st = await axios.get(`/test/status/${courseId.value}`);
     status.value = st.data;
 
     // After submit, show pre-test interface again (hide questions)
@@ -670,7 +680,7 @@ const submit = async (isAuto = false) => {
     // If passed and certificate is not ready, check once shortly after
     if (result.value.passed && !status.value.hasCertificate) {
       setTimeout(async () => {
-        const st2 = await axios.get(`/test/status/${courseId}`);
+        const st2 = await axios.get(`/test/status/${courseId.value}`);
         status.value = st2.data;
       }, 2000);
     }
@@ -697,7 +707,7 @@ const resetToStart = async () => {
 const downloadCertificate = async () => {
   try {
     const token = localStorage.getItem('auth_token');
-    const url = `/certificate/download/${courseId}`;
+    const url = `/certificate/download/${courseId.value}`;
     const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/pdf' },
       responseType: 'blob',
@@ -705,7 +715,7 @@ const downloadCertificate = async () => {
     const blob = new Blob([response.data], { type: 'application/pdf' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.download = `certificate_${courseId}.pdf`;
+    link.download = `certificate_${courseId.value}.pdf`;
     link.click();
   } catch (e) {
     alert('Failed to download certificate. Please try again.');

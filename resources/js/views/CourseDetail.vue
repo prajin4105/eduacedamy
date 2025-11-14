@@ -126,7 +126,7 @@
 
                   <!-- Test Button (shown when course is completed and test is available and not yet passed) -->
                   <button
-                    v-if="course.is_enrolled  && hasTest "
+                    v-if="course.is_enrolled && hasTest && !testPassed"
                     @click="startTest"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
@@ -192,6 +192,7 @@
         <CourseProgressTracker
           :course-id="course.id"
           :videos="course.videos"
+          :slug="courseSlug"
           @progress-updated="handleProgressUpdate"
         />
       </div>
@@ -208,6 +209,7 @@ import { useAuthStore } from '../stores/auth';
 import CourseProgressTracker from '../components/CourseProgressTracker.vue';
 import ReviewSummary from '@/components/Reviews/ReviewSummary.vue';
 import ReviewList from '@/components/Reviews/ReviewList.vue';
+import { useMaskedNavigation } from '../utils/navigation';
 
 export default {
   name: 'CourseDetail',
@@ -216,9 +218,20 @@ export default {
     ReviewSummary,
     ReviewList
   },
-  setup() {
+  props: {
+    slug: {
+      type: String,
+      default: null
+    },
+    id: {
+      type: [String, Number],
+      default: null
+    }
+  },
+  setup(props) {
     const route = useRoute();
     const authStore = useAuthStore();
+    const { goto } = useMaskedNavigation();
     const course = ref(null);
     const loading = ref(true);
     const expandedSections = ref([]);
@@ -334,7 +347,8 @@ export default {
         imageLoading.value = true;
         imageError.value = false;
 
-        const courseId = route.params.id || route.params.slug;
+        // Get course ID/slug from props (masked routing) or route params (fallback)
+        const courseId = props.slug || props.id || route.params.id || route.params.slug;
         console.log('Fetching course with ID/Slug:', courseId);
 
         if (!courseId) {
@@ -386,14 +400,14 @@ export default {
     // Handle enroll button click
     const handleEnrollClick = () => {
       if (!authStore.isAuthenticated) {
-        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        goto('login');
         return;
       }
 
       // Check if course requires subscription (is in any plan)
       if (course.value.requires_subscription || course.value.available_plans?.length > 0) {
         // Redirect to pricing page for subscription courses
-        window.location.href = '/pricing';
+        goto('pricing');
       } else {
         // Direct enrollment for regular courses (not in any plan)
         enrollCourse();
@@ -434,7 +448,7 @@ export default {
     // Enroll in course
     const enrollCourse = async () => {
       if (!authStore.isAuthenticated) {
-        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        goto('login');
         return;
       }
 
@@ -449,7 +463,7 @@ export default {
           course.value.enrollment_status = 'enrolled';
 
           setTimeout(() => {
-            window.location.href = `/course/${route.params.slug}`;
+            goto('studentCourse', { slug: props.slug || course.value?.slug });
           }, 1000);
         }
       } catch (error) {
@@ -457,10 +471,10 @@ export default {
 
         if (error.response?.status === 422 && error.response.data.requires_subscription) {
           // Course requires subscription - redirect to pricing
-          window.location.href = '/pricing';
+          goto('pricing');
         } else if (error.response?.status === 401) {
           authStore.clearAuth();
-          window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+          goto('login');
         } else {
           // Show error message
           console.error('Enrollment error:', error.response?.data?.message || 'Failed to enroll');
@@ -472,15 +486,20 @@ export default {
 
     const toggleWishlist = async () => {
       if (!authStore.isAuthenticated) {
-        window.location.href = `/login?redirect=${encodeURIComponent(route.fullPath)}`;
+        goto('login');
         return;
       }
 
       try {
+        const courseSlug = props.slug || course.value?.slug;
+        if (!courseSlug) {
+          console.error('No course slug available');
+          return;
+        }
         if (isInWishlist.value) {
-          await axios.delete(`/courses/${route.params.slug}/wishlist`);
+          await axios.delete(`/courses/${courseSlug}/wishlist`);
         } else {
-          await axios.post(`/courses/${route.params.slug}/wishlist`);
+          await axios.post(`/courses/${courseSlug}/wishlist`);
         }
         isInWishlist.value = !isInWishlist.value;
       } catch (error) {
@@ -498,7 +517,7 @@ export default {
     };
 
     const goToCourse = () => {
-      window.location.href = `/course/${route.params.slug}`;
+      goto('studentCourse', { slug: props.slug || course.value?.slug });
     };
 
     // Test-related methods
@@ -526,7 +545,7 @@ export default {
     };
 
     const startTest = () => {
-      window.location.href = `/student/course/${course.value.id}/test`;
+      goto('courseTest', { courseId: course.value.id });
     };
 
     const downloadCertificate = async () => {
@@ -593,6 +612,9 @@ export default {
       }
     });
 
+    // Computed property for slug to use in template
+    const courseSlug = computed(() => props.slug || course.value?.slug);
+
     return {
       course,
       loading,
@@ -604,6 +626,7 @@ export default {
       imageError,
       formattedRequirements,
       formattedLearningOutcomes,
+      courseSlug, // Expose slug for template
       // showEnrollModal, (removed)
       // selectedEnrollOption, (removed)
       // processingEnrollment, (removed)

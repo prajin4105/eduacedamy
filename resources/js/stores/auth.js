@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import router from '@/router';
+import { useMaskedNavigation } from '../utils/navigation';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(JSON.parse(localStorage.getItem('user')));
@@ -72,7 +73,8 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Logout error:', error);
     } finally {
       clearAuth();
-      router.push('/login');
+      const { goto } = useMaskedNavigation();
+      goto('login');
     }
   };
 

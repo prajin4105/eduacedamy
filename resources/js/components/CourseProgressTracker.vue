@@ -128,9 +128,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import progressService from '../services/ProgressService';
-
-const router = useRouter();
-const route = useRoute();
+import { useMaskedNavigation } from '../utils/navigation';
 
 const props = defineProps({
   courseId: {
@@ -140,8 +138,17 @@ const props = defineProps({
   videos: {
     type: Array,
     default: () => []
+  },
+  slug: {
+    type: String,
+    default: null
   }
 });
+
+const { goto } = useMaskedNavigation();
+
+const router = useRouter();
+const route = useRoute();
 
 const emit = defineEmits(['progress-updated']);
 
@@ -149,10 +156,14 @@ const progress = ref(null);
 const loading = ref(false);
 const error = ref(null);
 
-// Fixed watchVideo method - uses the video parameter and gets course slug from route
+// Fixed watchVideo method - uses the video parameter and gets course slug from props or route
 const watchVideo = (video) => {
-  const courseSlug = route.params.slug;
-  router.push(`/course/${courseSlug}/video/${video.id}`);
+  const courseSlug = props.slug || route.params.slug;
+  if (!courseSlug) {
+    console.error('Course slug is required');
+    return;
+  }
+  goto('studentVideo', { slug: courseSlug, videoId: video.id });
 };
 
 const fetchProgress = async () => {
