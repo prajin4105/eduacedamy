@@ -15,7 +15,7 @@ class WishlistController extends Controller
     {
         $course = Course::findOrFail($request->course_id);
         $request->user()->wishlist()->syncWithoutDetaching([$course->id]);
-
+        
         return response()->json(['success' => true, 'message' => 'Added to wishlist']);
     }
 

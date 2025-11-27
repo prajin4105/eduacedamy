@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\RegisterRequest;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -10,19 +13,16 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    use ApiResponse;
+
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $credentials = $request->validated();
 
         $user = User::where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            return response()->json([
-                'message' => 'The provided credentials are incorrect.'
-            ], 422);
+            return $this->errorResponse('The provided credentials are incorrect.', 422);
         }
 
         // Revoke existing tokens for this device name if provided
@@ -33,11 +33,11 @@ class AuthController extends Controller
 
         $plainTextToken = $user->createToken($deviceName)->plainTextToken;
 
-        return response()->json([
+        return $this->successResponse([
             'token' => $plainTextToken,
             'token_type' => 'Bearer',
             'user' => $user,
-        ]);
+        ], 'Login successful', 200);
     }
 
     public function logout(Request $request)
@@ -45,40 +45,42 @@ class AuthController extends Controller
         // Revoke current access token
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()->json(['message' => 'Logged out']);
+        return $this->successResponse(null, 'Logged out successfully', 200);
     }
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        // For GET requests (frontend compatibility), return direct data
+        // For POST requests (Postman), return standardized format
+        if ($request->isMethod('GET')) {
+            return response()->json($request->user());
+        }
+
+        return $this->successResponse($request->user(), 'User retrieved successfully', 200);
     }
-    public function register(Request $request)
-{
-    $validated = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'unique:users,email'],
-        'password' => ['required', 'string', 'min:6', 'confirmed'], // requires password_confirmation
-    ]);
 
-    // Create user
-    $user = User::create([
-        'name' => $validated['name'],
-        'email' => $validated['email'],
-        'password' => Hash::make($validated['password']),
-        'role' => 'student', // default role
-    ]);
+    public function register(RegisterRequest $request)
+    {
+        $validated = $request->validated();
 
-    // Create token
-    $deviceName = $request->string('device_name')->toString() ?: $request->userAgent();
-    $token = $user->createToken($deviceName)->plainTextToken;
+        // Create user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'] ?? 'student',
+        ]);
 
-    return response()->json([
-        'token' => $token,
-        'token_type' => 'Bearer',
-        'user' => $user,
-    ], 201);
-}
+        // Create token
+        $deviceName = $request->string('device_name')->toString() ?: $request->userAgent();
+        $token = $user->createToken($deviceName)->plainTextToken;
 
+        return $this->successResponse([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user,
+        ], 'Registration successful', 201);
+    }
 }
 
 

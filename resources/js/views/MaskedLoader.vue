@@ -25,8 +25,6 @@ import StudentVideo from "./StudentVideo.vue";
 import Certificates from "./Certificates.vue";
 import Profile from "./Profile.vue";
 import CourseTest from "./CourseTest.vue";
-import login from "./login.vue";
-import register from "./register.vue";
 
 const STORAGE_PREFIX = "masked:";
 
@@ -58,9 +56,7 @@ export default {
         studentVideo: StudentVideo,
         certificates: Certificates,
         profile: Profile,
-        courseTest: CourseTest,
-        login: login,
-        register: register
+        courseTest: CourseTest
       };
 
       return map[page] || Home;

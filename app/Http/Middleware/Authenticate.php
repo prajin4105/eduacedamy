@@ -7,16 +7,21 @@ use Illuminate\Http\Request;
 
 class Authenticate extends Middleware
 {
-	/**
-	 * Get the path the user should be redirected to when they are not authenticated.
-	 */
-	protected function redirectTo(Request $request): ?string
-	{
-		// For API and JSON requests, do not redirect. Let Laravel return a 401 JSON.
-		if ($request->expectsJson() || $request->is('api/*')) {
-			return null;
-		}
+    /**
+     * Get the path the user should be redirected to when they are not authenticated.
+     */
+    protected function redirectTo(Request $request): ?string
+    {
+        // Block redirects for API/JSON requests and let Laravel return 401.
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return null;
+        }
 
-		return $request->is('admin*') ? route('admin.login') : route('login');
-	}
+        // Admin redirect vs user redirect
+        if ($request->is('admin/*')) {
+            return route('admin.login');
+        }
+
+        return route('login');
+    }
 }

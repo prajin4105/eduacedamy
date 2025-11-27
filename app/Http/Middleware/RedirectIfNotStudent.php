@@ -15,9 +15,6 @@ class RedirectIfNotStudent
             return redirect()->route('login');
         }
 
-        if (Auth::user()->role !== 'student') {
-            return redirect('/')->with('error', 'You do not have permission to access the student dashboard.');
-        }
 
         return $next($request);
     }

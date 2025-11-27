@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreCourseRequest;
+use App\Http\Requests\Api\UpdateCourseRequest;
+use App\Http\Requests\Api\ReadResourceRequest;
+use App\Http\Requests\Api\DeleteResourceRequest;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\Course;
 use App\Models\User;
 use App\Models\Enrollment;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CourseController extends Controller
 {
+    use ApiResponse;
     /**
      * Display a listing of courses with filters and pagination.
      */
@@ -198,8 +205,21 @@ class CourseController extends Controller
         });
 
         // 📤 Final response
-        return response()->json([
-            'data' => $courses,
+        // For GET requests (frontend compatibility), return direct data with pagination
+        // For POST requests (Postman), return standardized format
+        if (request()->isMethod('GET')) {
+            return response()->json([
+                'data' => $courses,
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                ]
+            ]);
+        }
+
+        return $this->successResponse($courses, 'Courses retrieved successfully', 200, [
             'pagination' => [
                 'total' => $paginator->total(),
                 'per_page' => $paginator->perPage(),
@@ -244,7 +264,7 @@ class CourseController extends Controller
             $instructorPhoto = asset('storage/' . $course->instructor->profile_photo_path);
         }
 
-        return response()->json([
+        $courseData = [
             'id' => $course->id,
             'title' => $course->title,
             'slug' => $course->slug,
@@ -295,7 +315,15 @@ class CourseController extends Controller
             'is_enrolled' => $isEnrolled,
             'enrollment_status' => $enrollmentStatus,
             'can_access' => $canAccess,
-        ]);
+        ];
+
+        // For GET requests (frontend compatibility), return direct data
+        // For POST requests (Postman), return standardized format
+        if (request()->isMethod('GET')) {
+            return response()->json($courseData);
+        }
+
+        return $this->successResponse($courseData, 'Course retrieved successfully', 200);
     }
 
     public function instructors()
@@ -322,7 +350,12 @@ class CourseController extends Controller
                 ];
             });
 
-        return response()->json($instructors);
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($instructors);
+        }
+
+        return $this->successResponse($instructors, 'Instructors retrieved successfully', 200);
     }
 
     public function levels()
@@ -338,6 +371,127 @@ class CourseController extends Controller
                 ];
             });
 
-        return response()->json($levels->values());
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($levels->values());
+        }
+
+        return $this->successResponse($levels->values(), 'Levels retrieved successfully', 200);
+    }
+
+    // POST-based CRUD methods for Postman
+    public function createViaPost(StoreCourseRequest $request)
+    {
+        // Check authorization
+        $this->authorize('create', Course::class);
+
+        $validated = $request->validated();
+        
+        // If user is instructor (not admin), set instructor_id to current user
+        if (Auth::user()->role === 'instructor' && !isset($validated['instructor_id'])) {
+            $validated['instructor_id'] = Auth::id();
+        }
+        
+        // Generate slug if not provided
+        if (!isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']);
+        }
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('courses', 'public');
+        }
+
+        $course = Course::create($validated);
+
+        // Sync categories if provided
+        if (isset($validated['categories'])) {
+            $course->categories()->sync($validated['categories']);
+        }
+
+        return $this->successResponse($course, 'Course created successfully', 201);
+    }
+
+    public function readViaPost(ReadResourceRequest $request)
+    {
+        $course = Course::with(['instructor', 'categories', 'videos', 'plans'])
+            ->findOrFail($request->id);
+
+        // Check authorization
+        $this->authorize('view', $course);
+
+        return $this->successResponse($course, 'Course retrieved successfully', 200);
+    }
+
+    public function updateViaPost(UpdateCourseRequest $request)
+    {
+        $validated = $request->validated();
+        $courseId = $validated['id'];
+        unset($validated['id']);
+
+        $course = Course::findOrFail($courseId);
+
+        // Check authorization
+        $this->authorize('update', $course);
+
+        // If user is instructor (not admin), prevent changing instructor_id
+        if (Auth::user()->role === 'instructor' && isset($validated['instructor_id'])) {
+            unset($validated['instructor_id']);
+        }
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('courses', 'public');
+        }
+
+        $course->update($validated);
+
+        // Sync categories if provided
+        if (isset($validated['categories'])) {
+            $course->categories()->sync($validated['categories']);
+        }
+
+        return $this->successResponse($course->fresh(), 'Course updated successfully', 200);
+    }
+
+    public function deleteViaPost(DeleteResourceRequest $request)
+    {
+        $course = Course::findOrFail($request->id);
+        
+        // Check authorization
+        $this->authorize('delete', $course);
+        
+        $course->delete();
+
+        return $this->successResponse(null, 'Course deleted successfully', 200);
+    }
+
+    // REST methods
+    public function store(StoreCourseRequest $request)
+    {
+        return $this->createViaPost($request);
+    }
+
+    public function update(UpdateCourseRequest $request, $id)
+    {
+        $request->merge(['id' => $id]);
+        return $this->updateViaPost($request);
+    }
+
+    public function destroy($id)
+    {
+        $course = Course::findOrFail($id);
+        
+        // Check authorization
+        $this->authorize('delete', $course);
+        
+        $course->delete();
+
+        // For GET requests (frontend compatibility), return direct response
+        if (request()->isMethod('DELETE')) {
+            return response()->json(['message' => 'Course deleted successfully'], 200);
+        }
+
+        return $this->successResponse(null, 'Course deleted successfully', 200);
     }
 }

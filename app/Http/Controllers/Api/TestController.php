@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ReadResourceRequest;
+use App\Http\Requests\Api\DeleteResourceRequest;
+use App\Traits\ApiResponse;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\CourseProgress;
@@ -18,94 +21,237 @@ use Throwable;
 
 class TestController extends Controller
 {
-   public function showTest(int $courseId)
-{
-    $user = Auth::user();
-    if (!$user) {
-        return response()->json(['message' => 'Unauthorized'], 401);
+    use ApiResponse;
+
+    public function __construct()
+    {
+        $this->middleware('auth:sanctum');
+    }
+    /**
+     * Display a listing of tests.
+     */
+    public function index(Request $request)
+    {
+        $query = Test::with('course');
+
+        // Filter by course_id if provided
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->course_id);
+        }
+
+        // Students can only see tests for courses they're enrolled in
+        if (Auth::user()->role === 'student') {
+            $enrolledCourseIds = Auth::user()->enrollments()
+                ->where('status', 'completed')
+                ->pluck('course_id');
+            $query->whereIn('course_id', $enrolledCourseIds);
+        }
+        // Instructors can only see tests for their courses
+        elseif (Auth::user()->role === 'instructor') {
+            $query->whereHas('course', function ($q) {
+                $q->where('instructor_id', Auth::id());
+            });
+        }
+
+        $tests = $query->get();
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($tests);
+        }
+
+        return $this->successResponse($tests, 'Tests retrieved successfully', 200);
     }
 
-    $course = Course::findOrFail($courseId);
+    /**
+     * Store a newly created test.
+     */
+    public function store(Request $request)
+    {
+        // Check authorization
+        $this->authorize('create', Test::class);
 
-    if (!$this->hasCompletedCourse($user->id, $courseId)) {
-        return response()->json(['message' => 'Complete all videos to access the test'], 403);
+        $validated = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'max_attempts' => ['nullable', 'integer', 'min:1'],
+            'total_questions' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $course = Course::findOrFail($validated['course_id']);
+
+        // Instructors can only create tests for their own courses
+        if (Auth::user()->role === 'instructor' && $course->instructor_id !== Auth::id()) {
+            return $this->errorResponse('You can only create tests for your own courses.', 403);
+        }
+
+        $test = Test::create($validated);
+
+        return $this->successResponse($test, 'Test created successfully', 201);
     }
 
-    $test = Test::where('course_id', $courseId)->first();
+    /**
+     * Display the specified test.
+     */
+    public function show($id)
+    {
+        $test = Test::with('course')->findOrFail($id);
 
-    if (!$test) {
-        return response()->json(['message' => 'No test available for this course'], 404);
+        // Check authorization
+        $this->authorize('view', $test);
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($test);
+        }
+
+        return $this->successResponse($test, 'Test retrieved successfully', 200);
     }
 
-    // If already passed, do not show test
-    $hasPassed = UserTest::where('user_id', $user->id)
-        ->where('test_id', $test->id)
-        ->where('passed', true)
-        ->exists();
-    if ($hasPassed) {
-        return response()->json(['message' => 'Test already passed'], 403);
+    /**
+     * Update the specified test.
+     */
+    public function update(Request $request, $id)
+    {
+        $test = Test::with('course')->findOrFail($id);
+
+        // Check authorization
+        $this->authorize('update', $test);
+
+        $validated = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'max_attempts' => ['nullable', 'integer', 'min:1'],
+            'total_questions' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $test->update($validated);
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('PUT') || request()->isMethod('PATCH')) {
+            return response()->json($test->fresh());
+        }
+
+        return $this->successResponse($test->fresh(), 'Test updated successfully', 200);
     }
 
-    // Fetch only random limited questions
-    $questions = TestQuestion::where('test_id', $test->id)
-        ->inRandomOrder()
-        ->take($test->total_questions ?? 5) // fallback to 5 if null
-        ->get()
-        ->map(function (TestQuestion $q) {
-            return [
-                'id' => $q->id,
-                'question_text' => $q->question_text,
-                'options' => [
-                    'a' => $q->option_a,
-                    'b' => $q->option_b,
-                    'c' => $q->option_c,
-                    'd' => $q->option_d,
-                ],
-            ];
-        });
+    /**
+     * Remove the specified test.
+     */
+    public function destroy($id)
+    {
+        $test = Test::with('course')->findOrFail($id);
 
-    return response()->json([
-        'test' => [
-            'id' => $test->id,
-            'title' => $test->title,
-            'description' => $test->description,
-            'course_id' => $test->course_id,
-            'max_attempts' => $test->max_attempts ?? 3,
-            'total_questions' => $test->total_questions ?? 5,
-        ],
-        'questions' => $questions,
-    ]);
-}
+        // Check authorization
+        $this->authorize('delete', $test);
+
+        $test->delete();
+
+        return $this->successResponse(null, 'Test deleted successfully', 200);
+    }
+
+    /**
+     * Show test for student to take (existing functionality)
+     */
+    public function showTest(int $courseId)
+    {
+        $user = Auth::user();
+        $course = Course::findOrFail($courseId);
+
+        // Check authorization - students must be enrolled
+        if ($user->role === 'student') {
+            $test = Test::where('course_id', $courseId)->first();
+            if ($test) {
+                $this->authorize('view', $test);
+            }
+        }
+
+        if (!$this->hasCompletedCourse($user->id, $courseId)) {
+            return $this->errorResponse('Complete all videos to access the test', 403);
+        }
+
+        $test = Test::where('course_id', $courseId)->first();
+
+        if (!$test) {
+            return $this->errorResponse('No test available for this course', 404);
+        }
+
+        // If already passed, do not show test
+        $hasPassed = UserTest::where('user_id', $user->id)
+            ->where('test_id', $test->id)
+            ->where('passed', true)
+            ->exists();
+        if ($hasPassed) {
+            return $this->errorResponse('Test already passed', 403);
+        }
+
+        // Fetch only random limited questions
+        $questions = TestQuestion::where('test_id', $test->id)
+            ->inRandomOrder()
+            ->take($test->total_questions ?? 5)
+            ->get()
+            ->map(function (TestQuestion $q) {
+                return [
+                    'id' => $q->id,
+                    'question_text' => $q->question_text,
+                    'options' => [
+                        'a' => $q->option_a,
+                        'b' => $q->option_b,
+                        'c' => $q->option_c,
+                        'd' => $q->option_d,
+                    ],
+                ];
+            });
+
+        $response = [
+            'test' => [
+                'id' => $test->id,
+                'title' => $test->title,
+                'description' => $test->description,
+                'course_id' => $test->course_id,
+                'max_attempts' => $test->max_attempts ?? 3,
+                'total_questions' => $test->total_questions ?? 5,
+            ],
+            'questions' => $questions,
+        ];
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($response);
+        }
+
+        return $this->successResponse($response, 'Test retrieved successfully', 200);
+    }
 
 
     public function submitTest(Request $request)
     {
         $user = Auth::user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
 
         // Updated validation to allow nullable selected_option for auto-submit
         $validator = Validator::make($request->all(), [
             'course_id' => 'required|integer|exists:courses,id',
             'answers' => 'required|array|min:1',
             'answers.*.question_id' => 'required|integer|exists:test_questions,id',
-            'answers.*.selected_option' => 'nullable|in:a,b,c,d', // Changed to nullable
+            'answers.*.selected_option' => 'nullable|in:a,b,c,d',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Validation error', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $courseId = (int) $request->input('course_id');
 
         if (!$this->hasCompletedCourse($user->id, $courseId)) {
-            return response()->json(['message' => 'Complete all videos before submitting the test'], 403);
+            return $this->errorResponse('Complete all videos before submitting the test', 403);
         }
 
         $test = Test::with('course')->where('course_id', $courseId)->first();
         if (!$test) {
-            return response()->json(['message' => 'No test available for this course'], 404);
+            return $this->errorResponse('No test available for this course', 404);
         }
 
         // Get max_attempts from test (default to 3 if not set)
@@ -114,10 +260,10 @@ class TestController extends Controller
         // Attempts logic: allow max attempts from database; block if already passed
         $attempts = UserTest::where('user_id', $user->id)->where('test_id', $test->id)->orderBy('attempted_at')->get();
         if ($attempts->firstWhere('passed', true)) {
-            return response()->json(['message' => 'You have already passed this test'], 409);
+            return $this->errorResponse('You have already passed this test', 409);
         }
         if ($attempts->count() >= $maxAttempts) {
-            return response()->json(['message' => 'Maximum attempts reached'], 429);
+            return $this->errorResponse('Maximum attempts reached', 429);
         }
 
         $answers = collect($request->input('answers'));
@@ -125,7 +271,7 @@ class TestController extends Controller
 
         $questions = TestQuestion::whereIn('id', $questionIds)->where('test_id', $test->id)->get();
         if ($questions->count() === 0) {
-            return response()->json(['message' => 'No valid questions submitted'], 422);
+            return $this->errorResponse('No valid questions submitted', 422);
         }
 
         $numCorrect = 0;
@@ -193,33 +339,48 @@ class TestController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to record test attempt', 'error' => $e->getMessage()], 500);
+            return $this->errorResponse('Failed to record test attempt: ' . $e->getMessage(), 500);
         }
 
-        return response()->json([
+        $response = [
             'score' => $scorePercent,
             'passed' => $passed,
             'attempt_number' => $attempts->count() + 1,
-        ]);
+        ];
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('POST')) {
+            // Check if it's a POST request from frontend (not standardized)
+            $acceptHeader = request()->header('Accept', '');
+            if (str_contains($acceptHeader, 'application/json') && !request()->expectsJson()) {
+                return response()->json($response);
+            }
+        }
+
+        return $this->successResponse($response, 'Test submitted successfully', 200);
     }
 
     public function status(int $courseId)
     {
         $user = Auth::user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
         $test = Test::where('course_id', $courseId)->first();
+
         if (!$test) {
             // no test for this course
-            return response()->json([
+            $response = [
                 'hasTest' => false,
                 'passed' => null,
                 'attempts' => [],
                 'attemptsRemaining' => null,
                 'hasCertificate' => false,
-            ]);
+            ];
+
+            // For GET requests (frontend compatibility), return direct data
+            if (request()->isMethod('GET')) {
+                return response()->json($response);
+            }
+
+            return $this->successResponse($response, 'Test status retrieved', 200);
         }
 
         // Get max_attempts from test (default to 3 if not set)
@@ -254,14 +415,43 @@ class TestController extends Controller
             $hasCertificate = $certificate !== null;
         }
 
-        return response()->json([
+        $response = [
             'hasTest' => true,
             'passed' => $passed,
             'attempts' => $attempts,
             'attemptsRemaining' => $attemptsRemaining,
             'hasCertificate' => $hasCertificate,
-            'maxAttempts' => $maxAttempts, // Include max_attempts in response
-        ]);
+            'maxAttempts' => $maxAttempts,
+        ];
+
+        // For GET requests (frontend compatibility), return direct data
+        if (request()->isMethod('GET')) {
+            return response()->json($response);
+        }
+
+        return $this->successResponse($response, 'Test status retrieved successfully', 200);
+    }
+
+    // POST-based CRUD methods for Postman
+    public function createViaPost(Request $request)
+    {
+        return $this->store($request);
+    }
+
+    public function readViaPost(ReadResourceRequest $request)
+    {
+        return $this->show($request->id);
+    }
+
+    public function updateViaPost(Request $request)
+    {
+        $request->validate(['id' => 'required|integer']);
+        return $this->update($request, $request->id);
+    }
+
+    public function deleteViaPost(DeleteResourceRequest $request)
+    {
+        return $this->destroy($request->id);
     }
 
     private function hasCompletedCourse(int $userId, int $courseId): bool

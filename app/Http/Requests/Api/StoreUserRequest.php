@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // Authorization handled by middleware
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
+            'role' => ['nullable', 'string', 'in:student,instructor,admin'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'bio' => ['nullable', 'string'],
+            'date_of_birth' => ['nullable', 'date'],
+            'address' => ['nullable', 'string'],
+        ];
+    }
+}
+
