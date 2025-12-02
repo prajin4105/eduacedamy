@@ -386,12 +386,12 @@ class CourseController extends Controller
         $this->authorize('create', Course::class);
 
         $validated = $request->validated();
-        
+
         // If user is instructor (not admin), set instructor_id to current user
         if (Auth::user()->role === 'instructor' && !isset($validated['instructor_id'])) {
             $validated['instructor_id'] = Auth::id();
         }
-        
+
         // Generate slug if not provided
         if (!isset($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
@@ -457,10 +457,10 @@ class CourseController extends Controller
     public function deleteViaPost(DeleteResourceRequest $request)
     {
         $course = Course::findOrFail($request->id);
-        
+
         // Check authorization
         $this->authorize('delete', $course);
-        
+
         $course->delete();
 
         return $this->successResponse(null, 'Course deleted successfully', 200);
@@ -481,10 +481,10 @@ class CourseController extends Controller
     public function destroy($id)
     {
         $course = Course::findOrFail($id);
-        
+
         // Check authorization
         $this->authorize('delete', $course);
-        
+
         $course->delete();
 
         // For GET requests (frontend compatibility), return direct response
@@ -494,4 +494,117 @@ class CourseController extends Controller
 
         return $this->successResponse(null, 'Course deleted successfully', 200);
     }
+    public function filterCourses(Request $request)
+{
+    try {
+        $query = Course::query();
+
+        // Apply filters
+        if ($request->has('filters')) {
+            $filters = $request->input('filters');
+
+            // Level filter (can be array)
+            if (!empty($filters['level'])) {
+                if (is_array($filters['level'])) {
+                    $query->whereIn('level', $filters['level']);
+                } else {
+                    $query->where('level', $filters['level']);
+                }
+            }
+
+            // Price range filter
+            if (isset($filters['price_min'])) {
+                $query->where('price', '>=', $filters['price_min']);
+            }
+            if (isset($filters['price_max'])) {
+                $query->where('price', '<=', $filters['price_max']);
+            }
+
+            // Instructor filter
+            if (!empty($filters['instructor_id'])) {
+                $query->where('instructor_id', $filters['instructor_id']);
+            }
+
+            // Status filter
+            if (!empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+
+            // Category filter
+            if (!empty($filters['category_id'])) {
+                $query->where('category_id', $filters['category_id']);
+            }
+
+            // Date range filter - created
+            if (!empty($filters['created_from'])) {
+                $query->whereDate('created_at', '>=', $filters['created_from']);
+            }
+            if (!empty($filters['created_to'])) {
+                $query->whereDate('created_at', '<=', $filters['created_to']);
+            }
+
+            // Date range filter - updated
+            if (!empty($filters['updated_from'])) {
+                $query->whereDate('updated_at', '>=', $filters['updated_from']);
+            }
+            if (!empty($filters['updated_to'])) {
+                $query->whereDate('updated_at', '<=', $filters['updated_to']);
+            }
+
+            // Has discount filter
+            if (isset($filters['has_discount'])) {
+                if ($filters['has_discount']) {
+                    $query->where('discount', '>', 0);
+                } else {
+                    $query->where(function($q) {
+                        $q->whereNull('discount')->orWhere('discount', 0);
+                    });
+                }
+            }
+
+            // Search filter (title or description)
+            if (!empty($filters['search'])) {
+                $query->where(function($q) use ($filters) {
+                    $q->where('title', 'LIKE', '%' . $filters['search'] . '%')
+                      ->orWhere('description', 'LIKE', '%' . $filters['search'] . '%');
+                });
+            }
+        }
+
+        // Apply sorting
+        $sortField = $request->input('sort.field', 'created_at');
+        $sortOrder = $request->input('sort.order', 'desc');
+        $query->orderBy($sortField, $sortOrder);
+
+        // Apply pagination
+        $page = $request->input('pagination.page', 1);
+        $perPage = $request->input('pagination.per_page', 20);
+
+        $results = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'success' => true,
+            'code' => 200,
+            'message' => 'Courses filtered successfully',
+            'data' => $results->items(),
+            'meta' => [
+                'current_page' => $results->currentPage(),
+                'last_page' => $results->lastPage(),
+                'per_page' => $results->perPage(),
+                'total' => $results->total(),
+                'from' => $results->firstItem(),
+                'to' => $results->lastItem()
+            ]
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'code' => 500,
+            'message' => $e->getMessage(),
+            'errors' => null
+        ], 500);
+    }
+}
+
 }

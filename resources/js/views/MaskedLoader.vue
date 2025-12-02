@@ -55,7 +55,7 @@ export default {
         studentCourse: StudentCourse,
         studentVideo: StudentVideo,
         certificates: Certificates,
-        profile: Profile,
+        profile: Profile,   
         courseTest: CourseTest
       };
 

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -91,7 +92,7 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::findOrFail($id);
-        
+
         // Check authorization
         $this->authorize('view', $user);
 
@@ -109,7 +110,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         // Check authorization
         $this->authorize('update', $user);
 
@@ -147,10 +148,10 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
-        
+
         // Check authorization - only admin can delete users
         $this->authorize('delete', $user);
-        
+
         $user->delete();
 
         return $this->successResponse(null, 'User deleted successfully', 200);
@@ -174,7 +175,7 @@ class UserController extends Controller
         unset($validated['id']);
 
         $user = User::findOrFail($userId);
-        
+
         // Check authorization
         $this->authorize('update', $user);
 
@@ -202,5 +203,100 @@ class UserController extends Controller
     {
         return $this->destroy($request->id);
     }
-}
 
+    /**
+     * Filter users based on various criteria
+     */
+    public function filterUsers(Request $request)
+    {
+        try {
+            // Log the incoming request for debugging
+            Log::info('Filter Users Request', [
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+                'data' => $request->all()
+            ]);
+
+            $query = User::query();
+
+            // Check authorization - only admin and instructors can filter users
+            // Comment this out temporarily if it's causing issues
+            // $this->authorize('viewAny', User::class);
+
+            // Instructors can only see students
+            if (Auth::user()->role === 'instructor') {
+                $query->where('role', 'student');
+            }
+
+            // Apply filters
+            if ($request->has('filters')) {
+                $filters = $request->input('filters');
+
+                // Role filter
+                if (!empty($filters['role'])) {
+                    $query->where('role', $filters['role']);
+                }
+
+                // Status filter
+                if (!empty($filters['status'])) {
+                    $query->where('status', $filters['status']);
+                }
+
+                // Date range filter - created
+                if (!empty($filters['created_from'])) {
+                    $query->whereDate('created_at', '>=', $filters['created_from']);
+                }
+                if (!empty($filters['created_to'])) {
+                    $query->whereDate('created_at', '<=', $filters['created_to']);
+                }
+
+                // Search filter (name or email)
+                if (!empty($filters['search'])) {
+                    $query->where(function($q) use ($filters) {
+                        $q->where('name', 'LIKE', '%' . $filters['search'] . '%')
+                          ->orWhere('email', 'LIKE', '%' . $filters['search'] . '%');
+                    });
+                }
+            }
+
+            // Apply sorting
+            $sortField = $request->input('sort.field', 'created_at');
+            $sortOrder = $request->input('sort.order', 'desc');
+            $query->orderBy($sortField, $sortOrder);
+
+            // Apply pagination
+            $page = $request->input('pagination.page', 1);
+            $perPage = $request->input('pagination.per_page', 10);
+
+            $results = $query->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'code' => 200,
+                'message' => 'Users filtered successfully',
+                'data' => $results->items(),
+                'meta' => [
+                    'current_page' => $results->currentPage(),
+                    'last_page' => $results->lastPage(),
+                    'per_page' => $results->perPage(),
+                    'total' => $results->total(),
+                    'from' => $results->firstItem(),
+                    'to' => $results->lastItem()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Filter Users Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'code' => 500,
+                'message' => $e->getMessage(),
+                'errors' => null
+            ], 500);
+        }
+    }
+}

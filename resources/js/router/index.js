@@ -25,7 +25,21 @@ const routes = [
     component: MaskedLoader,
     props: true
   },
-
+{
+    path: "/login",
+    name: "Login",
+    component: () => import("../views/Login.vue")
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("../views/Register.vue")
+},
+{
+    path:"/reset-password",
+    name:"ResetPassword",
+    component: () => import("../views/ForgotPassword.vue")
+},
   {
     path: "/:pathMatch(.*)*",
     name: "NotFound",

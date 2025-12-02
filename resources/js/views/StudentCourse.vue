@@ -361,7 +361,19 @@ const checkEnrollmentStatus = async () => {
       course_id: course.value.id
     });
 
-    enrollmentStatus.value = response.data.already_enrolled || false;
+    // Support both standardized and legacy response formats
+    const payload = response?.data?.data && typeof response.data.data === 'object'
+      ? response.data.data
+      : response?.data || {};
+
+    const alreadyEnrolled = (
+      payload?.already_enrolled ??
+      payload?.alreadyEnrolled ??
+      payload?.data?.already_enrolled ??
+      false
+    );
+
+    enrollmentStatus.value = Boolean(alreadyEnrolled);
     console.log('Enrollment status checked:', enrollmentStatus.value);
   } catch (error) {
     console.error('Error checking enrollment status:', error);
@@ -405,7 +417,7 @@ const fetchCourseData = async () => {
     loading.value = true;
     error.value = null;
     enrollmentStatus.value = null;
-
+    
     // Fetch course data
     const courseSlug = props.slug || route.params.slug;
     if (!courseSlug) {

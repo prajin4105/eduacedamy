@@ -1,17 +1,17 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
-      <a @click.prevent="goto('home')" class="flex justify-center cursor-pointer">
+      <RouterLink to="/" class="flex justify-center cursor-pointer">
         <h2 class="text-3xl font-bold text-indigo-600">EduAcademy</h2>
-      </a>
+      </RouterLink>
       <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
         Reset your password
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
         Remember your password?
-        <a @click.prevent="goto('login')" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+        <RouterLink to="/login" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
           Sign in
-        </a>
+        </RouterLink>
       </p>
     </div>
 
@@ -142,9 +142,9 @@
 
         <!-- Back to Login -->
         <div class="mt-6 text-center">
-          <a @click.prevent="goto('login')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+          <RouterLink  to="/login" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
             ← Back to login
-          </a>
+          </RouterLink>
         </div>
       </div>
     </div>

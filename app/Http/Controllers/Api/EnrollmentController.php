@@ -18,6 +18,15 @@ use App\Http\Middleware\RedirectIfNotAdmin;
 use App\Http\Middleware\RedirectIfNotInstructor;
 use App\Http\Middleware\RedirectIfNotStudent;
 
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+
+
 
 class EnrollmentController extends Controller
 {
@@ -49,7 +58,7 @@ class EnrollmentController extends Controller
         }
         // Admin can see all enrollments (no filter)
 
-        $enrollments = $query->where('status', 'completed')
+        $enrollments = $query
             ->get()
             ->map(function ($enrollment) {
                 $course = $enrollment->course;
@@ -59,6 +68,8 @@ class EnrollmentController extends Controller
                     'id' => $enrollment->id,
                     'enrolled_at' => $enrollment->enrolled_at,
                     'amount_paid' => (float) ($enrollment->amount_paid ?? 0),
+                    'status' => $enrollment->status,
+                    'course_id' => $course?->id ?? $enrollment->course_id,
                     'course' => $course ? [
                         'id' => $course->id,
                         'title' => $course->title,
@@ -91,7 +102,6 @@ class EnrollmentController extends Controller
 
     $alreadyEnrolled = Enrollment::where('user_id', $user->id)
         ->where('course_id', $request->course_id)
-        ->where('status', 'completed')
         ->exists();
 
     // For GET requests (frontend compatibility), return direct data
@@ -120,7 +130,7 @@ class EnrollmentController extends Controller
         if ($user->role === 'student' && isset($validated['user_id']) && $validated['user_id'] != $user->id) {
             return $this->errorResponse('You can only enroll yourself.', 403);
         }
-        
+
         // Set user_id to current user if not admin
         if ($user->role !== 'admin') {
             $validated['user_id'] = $user->id;
@@ -251,7 +261,7 @@ class EnrollmentController extends Controller
         unset($validated['id']);
 
         $enrollment = Enrollment::findOrFail($enrollmentId);
-        
+
         // Check authorization
         $this->authorize('update', $enrollment);
 
@@ -268,10 +278,10 @@ class EnrollmentController extends Controller
     public function deleteViaPost(DeleteResourceRequest $request)
     {
         $enrollment = Enrollment::findOrFail($request->id);
-        
+
         // Check authorization
         $this->authorize('delete', $enrollment);
-        
+
         $enrollment->delete();
 
         return $this->successResponse(null, 'Enrollment deleted successfully', 200);
@@ -281,7 +291,7 @@ class EnrollmentController extends Controller
     public function update(UpdateEnrollmentRequest $request, $id)
     {
         $enrollment = Enrollment::findOrFail($id);
-        
+
         // Check authorization
         $this->authorize('update', $enrollment);
 
@@ -297,10 +307,10 @@ class EnrollmentController extends Controller
     public function destroy($id)
     {
         $enrollment = Enrollment::findOrFail($id);
-        
+
         // Check authorization
         $this->authorize('delete', $enrollment);
-        
+
         $enrollment->delete();
 
         // For GET requests (frontend compatibility), return direct response
@@ -310,4 +320,151 @@ class EnrollmentController extends Controller
 
         return $this->successResponse(null, 'Enrollment deleted successfully', 200);
     }
+public function filterEnrollments(Request $request)
+{
+    // Validate / sanitize incoming params (keeps controller predictable)
+    $validated = $request->validate([
+        'filters' => 'nullable|array',
+        'filters.user_id' => 'nullable|integer|exists:users,id',
+        'filters.course_id' => 'nullable|integer|exists:courses,id',
+        'filters.status' => 'nullable',
+        'filters.progress_min' => 'nullable|numeric|min:0|max:100',
+        'filters.progress_max' => 'nullable|numeric|min:0|max:100',
+        'filters.enrolled_from' => 'nullable|date',
+        'filters.enrolled_to' => 'nullable|date',
+        'filters.completed_from' => 'nullable|date',
+        'filters.completed_to' => 'nullable|date',
+        'filters.certificate_issued' => 'nullable|boolean',
+
+        'sort.field' => 'nullable|string',
+        'sort.order' => 'nullable|in:asc,desc',
+
+        'pagination.page' => 'nullable|integer|min:1',
+        'pagination.per_page' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    try {
+        $query = Enrollment::query();
+
+        $filters = $validated['filters'] ?? [];
+
+        // Use whereWhen pattern to keep it tidy and safe
+        if (!empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+
+        if (!empty($filters['course_id'])) {
+            $query->where('course_id', $filters['course_id']);
+        }
+
+        if (!empty($filters['status'])) {
+            if (is_array($filters['status'])) {
+                $query->whereIn('status', $filters['status']);
+            } else {
+                $query->where('status', $filters['status']);
+            }
+        }
+
+        if (isset($filters['progress_min'])) {
+            $query->where('progress_percentage', '>=', $filters['progress_min']);
+        }
+        if (isset($filters['progress_max'])) {
+            $query->where('progress_percentage', '<=', $filters['progress_max']);
+        }
+
+        if (!empty($filters['enrolled_from'])) {
+            $query->whereDate('enrolled_at', '>=', $filters['enrolled_from']);
+        }
+        if (!empty($filters['enrolled_to'])) {
+            $query->whereDate('enrolled_at', '<=', $filters['enrolled_to']);
+        }
+
+        if (!empty($filters['completed_from'])) {
+            $query->whereDate('completed_at', '>=', $filters['completed_from']);
+        }
+        if (!empty($filters['completed_to'])) {
+            $query->whereDate('completed_at', '<=', $filters['completed_to']);
+        }
+
+        if (isset($filters['certificate_issued'])) {
+            $cert = filter_var($filters['certificate_issued'], FILTER_VALIDATE_BOOLEAN);
+            if ($cert) {
+                $query->whereNotNull('certificate_issued_at');
+            } else {
+                $query->whereNull('certificate_issued_at');
+            }
+        }
+
+        // ---- Safe sorting: whitelist allowed columns ----
+        $allowedSortFields = ['enrolled_at', 'completed_at', 'progress_percentage', 'created_at', 'updated_at'];
+        $sortField = $request->input('sort.field', 'enrolled_at');
+        if (!in_array($sortField, $allowedSortFields, true)) {
+            $sortField = 'enrolled_at'; // default fallback
+        }
+
+        $sortOrder = $request->input('sort.order', 'desc');
+        $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? $sortOrder : 'desc';
+
+        $query->orderBy($sortField, $sortOrder);
+
+        // Pagination
+        $page = (int) $request->input('pagination.page', 1);
+        $perPage = (int) $request->input('pagination.per_page', 15);
+        $perPage = max(1, min($perPage, 100)); // safety caps
+
+        $results = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'success' => true,
+            'code' => 200,
+            'message' => 'Enrollments filtered successfully',
+            'data' => $results->items(),
+            'meta' => [
+                'current_page' => $results->currentPage(),
+                'last_page' => $results->lastPage(),
+                'per_page' => $results->perPage(),
+                'total' => $results->total(),
+                'from' => $results->firstItem(),
+                'to' => $results->lastItem()
+            ]
+        ], 200);
+
+    } catch (QueryException $e) {
+        // log full details, but return a safe message to client
+        Log::error('Enrollment filter - DB error', [
+            'message' => $e->getMessage(),
+            'sql' => method_exists($e, 'getSql') ? $e->getSql() : null,
+            'bindings' => method_exists($e, 'getBindings') ? $e->getBindings() : null,
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'code' => 500,
+            'message' => 'A database error occurred. Please try again later.',
+            'errors' => null
+        ], 500);
+    } catch (ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'code' => 422,
+            'message' => 'Validation failed.',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Throwable $e) {
+        // catch Throwable to include Error as well as Exception
+        Log::error('Enrollment filter - unexpected error', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'code' => 500,
+            'message' => 'Something went wrong. Please try again later.',
+            'errors' => null
+        ], 500);
+    }
+}
+
 }

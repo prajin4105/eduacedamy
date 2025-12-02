@@ -162,7 +162,7 @@
           </p>
         </div>
 
-        <div class="mt-10">
+        <div class="mt-10 no-copy">
           <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
             <div v-for="feature in features" :key="feature.name" class="relative">
               <dt>
@@ -320,7 +320,7 @@ if (!data.orderId) throw new Error("Failed to create Razorpay order");
     const options = {
       key: data.key,
       amount: data.amount || course.price * 100, // paise
-      currency: data.currency || "INR",
+      currency: data.currency || "INR", 
       name: "EduAcademy",
       description: course.title,
       order_id: data.orderId,
@@ -437,3 +437,9 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style>
+.no-copy {
+  user-select: none;
+}
+</style>

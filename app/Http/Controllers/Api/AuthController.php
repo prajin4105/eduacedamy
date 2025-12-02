@@ -28,21 +28,27 @@ class AuthController extends Controller
         // Revoke existing tokens for this device name if provided
         $deviceName = $request->string('device_name')->toString() ?: $request->userAgent();
 
-        // Optionally, you could delete existing tokens with same name
+        // delete existing tokens with same name
         $user->tokens()->where('name', $deviceName)->delete();
 
-        $plainTextToken = $user->createToken($deviceName)->plainTextToken;
+        // 👉 અહીં expiry વાળો નવો code
+        $newToken = $user->createToken($deviceName);
+        $plainTextToken = $newToken->plainTextToken;
+
+        $accessToken = $newToken->accessToken;
+        $accessToken->expires_at = now()->addMinutes(120);
+        $accessToken->save();
 
         return $this->successResponse([
-            'token' => $plainTextToken,
+            'token'      => $plainTextToken,
             'token_type' => 'Bearer',
-            'user' => $user,
+            'user'       => $user,
+            'expires_in' => 300,
         ], 'Login successful', 200);
     }
 
     public function logout(Request $request)
     {
-        // Revoke current access token
         $request->user()?->currentAccessToken()?->delete();
 
         return $this->successResponse(null, 'Logged out successfully', 200);
@@ -50,8 +56,6 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        // For GET requests (frontend compatibility), return direct data
-        // For POST requests (Postman), return standardized format
         if ($request->isMethod('GET')) {
             return response()->json($request->user());
         }
@@ -63,24 +67,28 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        // Create user
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'] ?? 'student',
+            'role'     => $validated['role'] ?? 'student',
         ]);
 
-        // Create token
         $deviceName = $request->string('device_name')->toString() ?: $request->userAgent();
-        $token = $user->createToken($deviceName)->plainTextToken;
+
+        // 👉 register વખતે પણ same logic
+        $newToken = $user->createToken($deviceName);
+        $plainTextToken = $newToken->plainTextToken;
+
+        $accessToken = $newToken->accessToken;
+        $accessToken->expires_at = now()->addMinutes(120);
+        $accessToken->save();
 
         return $this->successResponse([
-            'token' => $token,
+            'token'      => $plainTextToken,
             'token_type' => 'Bearer',
-            'user' => $user,
+            'user'       => $user,
+            'expires_in' => 300,
         ], 'Registration successful', 201);
     }
 }
-
-

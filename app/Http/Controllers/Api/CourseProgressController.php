@@ -89,7 +89,7 @@ return response()->json([
             \Log::info('Marking video as completed', [
                 'user_id' => $user->id,
                 'course_id' => $courseId,
-                'video_id' => $videoId
+                'video_id' => $videoId  
             ]);
 
             $video = Video::where('course_id', $courseId)->findOrFail($videoId);

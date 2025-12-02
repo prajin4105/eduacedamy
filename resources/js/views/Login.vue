@@ -8,12 +8,12 @@
         <p class="text-sm text-center text-indigo-100">
           Access your account and continue your learning journey.
         </p>
-        <a
-          @click.prevent="goto('register')"
+        <RouterLink
+          to="/register"
           class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition cursor-pointer"
         >
           Create Account
-        </a>
+        </RouterLink>
       </div>
 
       <!-- Right Side (Login Form) -->
@@ -67,12 +67,12 @@
               <span class="ml-2">Remember me</span>
             </label>
 
-            <a
-              @click.prevent="goto('forgotPassword')"
+            <RouterLink
+              to="/reset-password"
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
             >
               Forgot your password?
-            </a>
+            </RouterLink>
           </div>
 
           <button
@@ -89,15 +89,12 @@
           </div>
         </form>
 
-        <!-- Social Login Section -->
-
-
         <div class="mt-8 text-center">
           <p class="text-sm text-gray-600">
-            Don’t have an account?
-            <a @click.prevent="goto('register')" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+            Don't have an account?
+            <RouterLink to="/register" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
               Sign up here
-            </a>
+            </RouterLink>
           </p>
         </div>
       </div>
@@ -133,25 +130,55 @@ const login = async () => {
     errors.value = {}
     message.value = ''
 
+    // Step 1: Login and get token
     const response = await axios.post('/login', {
       email: form.value.email,
       password: form.value.password,
       device_name: 'web'
     })
 
-    const token = response.data.token
+    console.log('Full response:', response.data)
+
+    // Extract token from response - check if it's wrapped in data property
+    const token = response.data.data?.token || response.data.token
+    const userData = response.data.data?.user || response.data.user
+
+    if (!token) {
+      throw new Error('No token received from server')
+    }
+
+    console.log('Token received:', token ? 'Yes' : 'No')
+
+    // Step 2: Set token in localStorage AND axios headers BEFORE making /me request
     localStorage.setItem('auth_token', token)
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+    // Step 3: If user data is already in login response, use it; otherwise fetch from /me
+    let me
+    if (userData) {
+      me = { data: userData }
+      console.log('User data from login response:', userData)
+    } else {
+      // Fetch user data with the token properly set
+      me = await axios.get('/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      console.log('User data from /me endpoint:', me.data)
+    }
+
+    // Step 4: Store user data
+    localStorage.setItem('user', JSON.stringify(me.data))
+    authStore.setAuth(me.data, token)
 
     message.value = 'Login successful! Redirecting...'
     messageType.value = 'success'
 
-    const me = await axios.get('/me')
-    localStorage.setItem('user', JSON.stringify(me.data))
-    authStore.setAuth(me.data, token)
-
+    // Step 5: Role-based redirection
     setTimeout(async () => {
       const role = me.data.role
+
       if (role === 'admin') {
         try {
           await axios.post('http://127.0.0.1:8000/login', {
@@ -164,6 +191,7 @@ const login = async () => {
           })
           window.location.href = '/admin'
         } catch (e) {
+          console.error('Admin login error:', e)
           window.location.href = '/admin/login'
         }
       } else if (role === 'instructor') {
@@ -178,6 +206,7 @@ const login = async () => {
           })
           window.location.href = '/instructor'
         } catch (e) {
+          console.error('Instructor login error:', e)
           window.location.href = '/instructor/login'
         }
       } else if (role === 'student') {
@@ -187,9 +216,13 @@ const login = async () => {
       }
     }, 300)
   } catch (error) {
+    console.error('Login error:', error)
+
     if (error.response?.status === 422) {
       errors.value = error.response.data.errors || {}
       message.value = error.response.data.message || 'Validation failed'
+    } else if (error.response?.status === 401) {
+      message.value = 'Invalid email or password'
     } else {
       message.value = error.response?.data?.message || 'Login failed. Please try again.'
     }

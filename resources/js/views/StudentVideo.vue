@@ -484,63 +484,83 @@ const redirectToLogin = () => {
 
 // Enhanced enrollment checking
 const checkEnrollmentStatus = async () => {
-  if (!course.value?.id) return false;
-
-  const token = checkAuthentication();
-  if (!token) return false;
-
-  try {
-    // Try multiple approaches to check enrollment
-
-    // Method 1: Use existing enrollment check endpoint
-    const enrollmentRes = await axios.post('/enrollments/check', {
-      course_id: course.value.id
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json"
-      }
-    });
-
-    if (enrollmentRes.data.already_enrolled) {
-      return true;
-    }
-
-    // Method 2: Try the enrollment status endpoint as fallback
-    try {
-      const statusRes = await axios.get(
-        `/courses/${course.value.id}/enrollment-status`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json"
-          }
-        }
-      );
-
-      return Boolean(statusRes.data.enrolled);
-    } catch (statusError) {
-      console.warn('Enrollment status endpoint failed:', statusError.response?.status);
-    }
-
-    // Method 3: Check if course data indicates enrollment
-    if (course.value.is_enrolled === true || course.value.is_enrolled === 1) {
-      return true;
-    }
-
-    return false;
-
-  } catch (error) {
-    console.error('Error checking enrollment status:', error);
-
-    // If it's an auth error, handle appropriately
-    if (error.response?.status === 401) {
-      isAuthError.value = true;
-      return false;
-    }
-
+  if (!course.value?.id) {
+    console.warn('No course id available for enrollment check');
     return false;
   }
+
+  const token = checkAuthentication();
+  if (!token) {
+    console.warn('No token found in checkEnrollmentStatus');
+    return false;
+  }
+
+  // Helpful debug logs
+  console.log('Checking enrollment for course.id=', course.value.id, 'with token length=', token?.length);
+
+  // Keep a few candidate endpoints/methods to try
+  const attempts = [
+    { method: 'post', url: '/enrollments/check', body: { course_id: course.value.id } },
+    { method: 'get', url: `/courses/${course.value.id}/enrollment-status`, body: null },
+    { method: 'get', url: `/courses/${course.value.id}`, body: null } // maybe course has is_enrolled
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      let res;
+      const config = { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } };
+
+      console.log('Attempting', attempt.method.toUpperCase(), attempt.url, 'payload=', attempt.body);
+
+      if (attempt.method === 'post') {
+        res = await axios.post(attempt.url, attempt.body, config);
+      } else {
+        res = await axios.get(attempt.url, config);
+      }
+
+      console.log('Enrollment check response:', attempt.url, res.status, res.data);
+
+      // Normalize common shapes
+      const data = res.data || {};
+      if (data.already_enrolled === true || data.enrolled === true || data.is_enrolled === 1 || data.is_enrolled === true) {
+        return true;
+      }
+
+      // Some APIs return { enrolled: 1 } or nested shape
+      if (typeof data === 'object') {
+        // search nested keys
+        const jsonStr = JSON.stringify(data).toLowerCase();
+        if (jsonStr.includes('"already_enrolled":true') || jsonStr.includes('"enrolled":true') || jsonStr.includes('"is_enrolled":1') ) {
+          return true;
+        }
+      }
+
+      // If server says false explicitly, try next fallback
+      if (res.status === 200 && (data === null || Object.keys(data).length === 0)) {
+        // server returned empty object; try next fallback
+        continue;
+      }
+
+      // If server responded with 204 No Content but you're enrolled, backend is the culprit; keep trying fallback
+      if (res.status === 204) continue;
+
+    } catch (err) {
+      console.warn('Enrollment attempt failed:', attempt.url, err?.response?.status, err?.response?.data);
+      if (err.response?.status === 401) {
+        isAuthError.value = true;
+        return false;
+      }
+      // otherwise keep trying other attempts
+    }
+  }
+
+  // final fallback: check course object itself (maybe it contains enrollment info)
+  if (course.value && (course.value.is_enrolled === 1 || course.value.is_enrolled === true || course.value.enrolled === true)) {
+    console.log('Using course.value flag for enrollment');
+    return true;
+  }
+
+  return false;
 };
 
 // Method to refresh enrollment status

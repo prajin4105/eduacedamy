@@ -8,12 +8,13 @@
         <p class="text-sm text-center text-indigo-100">
           Join us today and start exploring amazing features crafted just for you.
         </p>
-        <a
-          @click.prevent="goto('login')"
+        <RouterLink
+
+            to="/login"
           class="mt-6 inline-block border border-white/50 px-6 py-2 rounded-md hover:bg-white hover:text-indigo-700 transition cursor-pointer"
         >
           Sign In Instead
-        </a>
+        </RouterLink>
       </div>
 
       <!-- Right Side (Form Panel) -->
@@ -22,9 +23,9 @@
           <h2 class="text-3xl font-extrabold text-gray-900">Create Your Account</h2>
           <p class="mt-2 text-sm text-gray-600">
             Or
-            <a @click.prevent="goto('login')" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+            <RouterLink to="/login" class="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
               sign in to your account
-            </a>
+            </RouterLink>
           </p>
         </div>
 
@@ -94,7 +95,7 @@
             <span v-if="loading" class="animate-spin mr-2">&#9696;</span>
             Register
           </button>
-          
+
 
           <div v-if="successMessage" class="text-green-600 text-center mt-3">
             {{ successMessage }}

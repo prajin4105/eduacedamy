@@ -2,95 +2,82 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Plan;
-use App\Models\Course;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class PlanSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $plansData = [
+        $plans = [
             [
                 'name' => 'Basic',
-                'slug' => 'basic',
-                'description' => 'Access to a curated set of beginner courses.',
+                'description' => 'Perfect for beginners who want to explore our platform',
                 'price' => 9.99,
-                'currency' => 'USD',
                 'interval' => 'month',
                 'interval_count' => 1,
-                'is_active' => true,
+                'features' => [
+                    'Access to basic courses',
+                    'Community support',
+                    'Email support',
+                    '1 active course at a time',
+                    'Basic analytics',
+                ],
             ],
             [
-                'name' => 'Standard',
-                'slug' => 'standard',
-                'description' => 'Access to most courses across categories.',
-                'price' => 19.99,
-                'currency' => 'USD',
-                'interval' => 'month',
-                'interval_count' => 1,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Premium',
-                'slug' => 'premium',
-                'description' => 'Access to all courses including advanced series.',
+                'name' => 'Pro',
+                'description' => 'For serious learners who want to advance their skills',
                 'price' => 29.99,
-                'currency' => 'USD',
                 'interval' => 'month',
                 'interval_count' => 1,
-                'is_active' => true,
+                'features' => [
+                    'Access to all courses',
+                    'Priority support',
+                    '5 active courses at a time',
+                    'Downloadable resources',
+                    'Advanced analytics',
+                    'Offline access',
+                ],
             ],
             [
-                'name' => 'Pro Annual',
-                'slug' => 'pro-annual',
-                'description' => 'All-access annual plan with a discount.',
-                'price' => 199.00,
-                'currency' => 'USD',
-                'interval' => 'year',
-                'interval_count' => 1,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Team',
-                'slug' => 'team',
-                'description' => 'Team plan suitable for small groups and startups.',
-                'price' => 79.00,
-                'currency' => 'USD',
+                'name' => 'Enterprise',
+                'description' => 'For organizations and power users',
+                'price' => 99.99,
                 'interval' => 'month',
                 'interval_count' => 1,
-                'is_active' => true,
+                'features' => [
+                    'Unlimited course access',
+                    '24/7 priority support',
+                    'Unlimited active courses',
+                    'All Pro features',
+                    'Team management',
+                    'Custom learning paths',
+                    'API access',
+                    'Dedicated account manager',
+                ],
             ],
         ];
 
-        foreach ($plansData as $planData) {
-            Plan::firstOrCreate(
-                ['slug' => $planData['slug']],
-                $planData
-            );
+        foreach ($plans as $planData) {
+            $slug = Str::slug($planData['name']);
+            $description = $planData['description'] . '\n\n' . implode('\n• ', $planData['features']);
+            
+            Plan::create([
+                'name' => $planData['name'],
+                'slug' => $slug,
+                'description' => $description,
+                'price' => $planData['price'],
+                'currency' => 'USD',
+                'interval' => $planData['interval'],
+                'interval_count' => $planData['interval_count'],
+                'is_active' => true,
+                'created_at' => now()->subYear(),
+                'updated_at' => now(),
+            ]);
         }
-
-        // Link courses to plans with specific access scopes
-        $allCourses = Course::where('is_published', true)->pluck('id')->all();
-        if (empty($allCourses)) {
-            return; // nothing to link yet
-        }
-
-        // Get or create plans
-        $basic = Plan::where('slug', 'basic')->first();
-        $standard = Plan::where('slug', 'standard')->first();
-        $premium = Plan::where('slug', 'premium')->first();
-        $proAnnual = Plan::where('slug', 'pro-annual')->first();
-        $team = Plan::where('slug', 'team')->first();
-
-        // Basic: first 20% of courses
-
-        // Standard: first 60% of courses
-
-
-
-
     }
 }
-
-
