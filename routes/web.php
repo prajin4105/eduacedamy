@@ -66,6 +66,11 @@ Route::post('/logout', function (Request $request) {
     return redirect('/');
 })->name('logout');
 
+// Instructor Application routes
+Route::get('/become-instructor', [App\Http\Controllers\InstructorApplicationController::class, 'showForm'])->middleware('auth')->name('become-instructor');
+Route::post('/instructor/apply', [App\Http\Controllers\InstructorApplicationController::class, 'apply'])->middleware('auth');
+Route::get('/admin/instructor-applications/{id}/download', [App\Http\Controllers\InstructorApplicationController::class, 'downloadDocument'])->middleware('auth')->name('instructor-applications.download');
+
 // Vue.js SPA - serve the main app
 Route::get('/', function () {
     return view('app');

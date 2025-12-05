@@ -201,6 +201,7 @@ class EnrollmentController extends Controller
         });
 
         $availableCourses = Course::where('is_published', true)
+            ->where('approval_status', 'approved')
             ->whereDoesntHave('enrollments', function($query) use ($user) {
                 $query->where('user_id', $user->id)->where('status', 'completed');
             })

@@ -12,11 +12,11 @@ export const useAuthStore = defineStore('auth', () => {
   const setAuth = (userData, authToken) => {
     user.value = userData;
     token.value = authToken;
-    
+
     // Store user data and token in localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('auth_token', authToken);
-    
+
     // Set the default Authorization header for axios
     axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
   };
@@ -24,11 +24,11 @@ export const useAuthStore = defineStore('auth', () => {
   const clearAuth = () => {
     user.value = null;
     token.value = null;
-    
+
     // Remove user data and token from localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
-    
+
     // Remove Authorization header
     delete axios.defaults.headers.common['Authorization'];
   };
@@ -37,14 +37,14 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await axios.post('/login', credentials);
       const { user, token } = response.data;
-      
+
       setAuth(user, token);
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Login failed. Please try again.' 
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed. Please try again.'
       };
     }
   };
@@ -53,13 +53,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await axios.post('/register', userData);
       const { user, token } = response.data;
-      
+
       setAuth(user, token);
       return { success: true };
     } catch (error) {
       console.error('Registration failed:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         errors: error.response?.data?.errors || {},
         message: error.response?.data?.message || 'Registration failed. Please try again.'
       };
@@ -80,9 +80,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const checkAuth = async () => {
     if (!token.value) return false;
-    
+
     try {
-      const response = await axios.get('/api/user');
+      const response = await axios.get('/user');
       user.value = response.data;
       localStorage.setItem('user', JSON.stringify(response.data));
       return true;

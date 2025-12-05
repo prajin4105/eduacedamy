@@ -40,6 +40,11 @@ const routes = [
     name:"ResetPassword",
     component: () => import("../views/ForgotPassword.vue")
 },
+{
+    path: "/become-instructor",
+    name: "BecomeInstructor",
+    component: () => import("../views/BecomeInstructor.vue")
+},
   {
     path: "/:pathMatch(.*)*",
     name: "NotFound",

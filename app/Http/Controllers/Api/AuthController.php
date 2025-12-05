@@ -39,10 +39,14 @@ class AuthController extends Controller
         $accessToken->expires_at = now()->addMinutes(120);
         $accessToken->save();
 
+        // Load instructor application relationship
+        $user->load('instructorApplication');
+
         return $this->successResponse([
             'token'      => $plainTextToken,
             'token_type' => 'Bearer',
             'user'       => $user,
+            'instructor_status' => $user->instructorApplication?->status ?? null,
             'expires_in' => 300,
         ], 'Login successful', 200);
     }
@@ -56,11 +60,19 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
+        $user->load('instructorApplication');
+
+        $responseData = [
+            'user' => $user,
+            'instructor_status' => $user->instructorApplication?->status ?? null,
+        ];
+
         if ($request->isMethod('GET')) {
-            return response()->json($request->user());
+            return response()->json($responseData);
         }
 
-        return $this->successResponse($request->user(), 'User retrieved successfully', 200);
+        return $this->successResponse($responseData, 'User retrieved successfully', 200);
     }
 
     public function register(RegisterRequest $request)
@@ -84,10 +96,14 @@ class AuthController extends Controller
         $accessToken->expires_at = now()->addMinutes(120);
         $accessToken->save();
 
+        // Load instructor application relationship
+        $user->load('instructorApplication');
+
         return $this->successResponse([
             'token'      => $plainTextToken,
             'token_type' => 'Bearer',
             'user'       => $user,
+            'instructor_status' => $user->instructorApplication?->status ?? null,
             'expires_in' => 300,
         ], 'Registration successful', 201);
     }

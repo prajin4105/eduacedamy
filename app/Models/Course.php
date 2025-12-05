@@ -28,12 +28,17 @@ class Course extends Model
         'level',
         'language',
         'duration_in_minutes',
+        'approval_status',
+        'approval_reason',
+        'approved_at',
+        'approved_by',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'published_at' => 'datetime',
         'price' => 'decimal:2',
+        'approved_at' => 'datetime',
     ];
     protected $appends = ['image_url'];
 
@@ -48,6 +53,11 @@ class Course extends Model
     public function instructor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'instructor_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 public function wishlistedBy()
 {
@@ -193,8 +203,41 @@ public function certificates()
         parent::boot();
 
         static::creating(function ($course) {
-        if (auth()->check() && !$course->instructor_id) {
+            if (auth()->check() && !$course->instructor_id) {
                 $course->instructor_id = auth()->id();
+            }
+            
+            // If instructor is creating/updating, set approval status to pending
+            if (auth()->check() && auth()->user()->role === 'instructor') {
+                $course->approval_status = 'pending';
+                $course->is_published = false; // Prevent direct publishing
+            }
+        });
+
+        static::created(function ($course) {
+            // Notify admins when instructor submits a new course
+            if (auth()->check() && auth()->user()->role === 'instructor' && $course->approval_status === 'pending') {
+                $admins = \App\Models\User::where('role', 'admin')->get();
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewCourseSubmittedNotification($course));
+            }
+        });
+
+        static::updating(function ($course) {
+            // If instructor is updating, reset approval status to pending if course details changed
+            if (auth()->check() && auth()->user()->role === 'instructor') {
+                $importantFields = ['title', 'description', 'price', 'what_you_will_learn', 'requirements'];
+                $wasApproved = $course->getOriginal('approval_status') === 'approved';
+                
+                if ($course->isDirty($importantFields)) {
+                    $course->approval_status = 'pending';
+                    $course->is_published = false; // Prevent direct publishing
+                    
+                    // Notify admins if course was previously approved and is being resubmitted
+                    if ($wasApproved) {
+                        $admins = \App\Models\User::where('role', 'admin')->get();
+                        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewCourseSubmittedNotification($course));
+                    }
+                }
             }
         });
     }

@@ -239,6 +239,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::get('/settings/{key}', [SettingsController::class, 'show']);
     Route::put('/settings', [SettingsController::class, 'update']);
+
+    // Instructor Application routes (rate limited: 5 per hour)
+    Route::post('/instructor/apply', [App\Http\Controllers\Api\InstructorApplicationController::class, 'apply'])
+        ->middleware('throttle:5,60');
 });
 
 // ============================================

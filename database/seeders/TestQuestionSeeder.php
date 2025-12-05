@@ -209,3 +209,4 @@ class TestQuestionSeeder extends Seeder
     private function randomFunctionality() { return 'a REST API'; }
     private function randomBestPractice() { return 'DRY principle'; }
 }
+    

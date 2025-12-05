@@ -8,13 +8,12 @@ use App\Notifications\CourseApprovedNotification;
 use App\Notifications\CourseRejectedNotification;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\RestoreAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class EditCourse extends EditRecord
+class ViewCourse extends ViewRecord
 {
     protected static string $resource = CourseResource::class;
 
@@ -44,6 +43,8 @@ class EditCourse extends EditRecord
                         ->title('Course Approved')
                         ->success()
                         ->send();
+
+                    $this->redirect(static::getResource()::getUrl('index'));
                 })
                 ->visible(fn (Course $record) => $record->approval_status !== 'approved'),
 
@@ -77,12 +78,14 @@ class EditCourse extends EditRecord
                         ->title('Course Rejected')
                         ->success()
                         ->send();
+
+                    $this->redirect(static::getResource()::getUrl('index'));
                 })
                 ->visible(fn (Course $record) => $record->approval_status !== 'rejected'),
 
+            EditAction::make(),
             DeleteAction::make(),
-            ForceDeleteAction::make(),
-            RestoreAction::make(),
         ];
     }
 }
+

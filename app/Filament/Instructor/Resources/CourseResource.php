@@ -25,6 +25,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Str;
+
 
 
 class CourseResource extends Resource
@@ -35,46 +39,133 @@ class CourseResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     protected static ?int $navigationSort = 1;
-
-    public static function form(Schema $schema): Schema
+     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->schema([
-                Section::make('Course Details')
-                    ->schema([
-                        Hidden::make('instructor_id')
-                            ->default(fn() => auth()->id())
-                            ->dehydrated(true),
+        return $schema->schema([
+            Section::make('Course Information')
+                ->schema([
+                    Forms\Components\TextInput::make('title')
+                        ->required()
+                        ->maxLength(255)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (string $operation, $state, $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
 
-                        TextInput::make('title')
-                            ->required()
-                            ->maxLength(255),
+                    Forms\Components\TextInput::make('slug')
+                        ->required()
+                        ->maxLength(255)
+                        ->unique(ignoreRecord: true)
+                        ->rules(['alpha_dash']),
+                        Section::make('Categories')
+    ->schema([
+        Select::make('categories')
+            ->label('Assign Categories')
+            ->multiple()
+            ->preload()
+            ->relationship('categories', 'name') // ✅ Magic: auto uses belongsToMany
+            ->required(),
+    ])
+    ->columns(1),
+    //instructor role==insturctor_id
+    Section::make('Instructor')
+    ->schema([
+        Select::make('instructor_id')
+            ->label('Select Instructor')
+            ->required()
+            ->preload()
+            ->relationship('instructor', 'name') // ✅ Magic: auto uses belongsToMany
+            ->searchable()
+            ->placeholder('Select an instructor'),
+    ])
+    ->columns(1),
 
-                        TextInput::make('slug')
-                            ->maxLength(255)
-                            ->helperText('Optional; will be generated if left empty'),
+                    RichEditor::make('description')
+                        ->required()
+                        ->columnSpanFull()
+                        ->toolbarButtons([
+                            'bold',
+                            'italic',
+                            'underline',
+                            'bulletList',
+                            'orderedList',
+                            'link',
+                        ]),
+                ])
+                ->columns(2),
 
-                        Textarea::make('description')
-                            ->rows(4),
+            Section::make('Course Details')
+                ->schema([
+                    Forms\Components\TextInput::make('price')
+                        ->numeric()
+                        ->prefix('$')
+                        ->minValue(0)
+                        ->required()
+                        ->default(0),
 
-                        TextInput::make('price')
-                            ->numeric()
-                            ->minValue(0)
-                            ->step('0.01'),
-                    ])->columns(2),
+                    Forms\Components\Select::make('level')
+                        ->options([
+                            'beginner' => 'Beginner',
+                            'intermediate' => 'Intermediate',
+                            'advanced' => 'Advanced',
+                        ])
+                        ->required()
+                        ->default('beginner'),
 
-                Section::make('Media & Publishing')
-                    ->schema([
-                        FileUpload::make('image')
-                            ->directory('course-images')
-                            ->image()
-                            ->imageEditor(),
+                    Forms\Components\Select::make('language')
+                        ->options([
+                            'english' => 'English',
+                            'spanish' => 'Spanish',
+                            'french' => 'French',
+                            'german' => 'German',
+                            'chinese' => 'Chinese',
+                            'japanese' => 'Japanese',
+                        ])
+                        ->required()
+                        ->default('english'),
 
-                        Toggle::make('is_published')
-                            ->label('Published')
-                            ->default(false),
-                    ])->columns(2),
-            ]);
+                    Forms\Components\TextInput::make('duration_in_minutes')
+                        ->label('Duration (minutes)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0)
+                        ->suffix('minutes'),
+                ])
+                ->columns(2),
+
+            Section::make('Course Content')
+                ->schema([
+                    Forms\Components\Textarea::make('what_you_will_learn')
+                        ->label('What students will learn')
+                        ->rows(4)
+                        ->columnSpanFull(),
+
+                    Forms\Components\Textarea::make('requirements')
+                        ->label('Course requirements')
+                        ->rows(4)
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Media & Publishing')
+                ->schema([
+                    Forms\Components\FileUpload::make('image')
+                        ->label('Course Image')
+                        ->image()
+                        ->imageEditor()
+                        ->directory('courses')
+                        ->visibility('public'),
+
+                    Forms\Components\Toggle::make('is_published')
+                        ->label('Publish this course')
+                        ->onColor('success')
+                        ->offColor('danger')
+                        ->default(false),
+
+                    Forms\Components\DateTimePicker::make('published_at')
+                        ->label('Publication Date')
+                        ->visible(fn ($get) => $get('is_published'))
+                        ->default(now()),
+                ])
+                ->columns(2),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -90,6 +181,16 @@ class CourseResource extends Resource
                     ->money('usd')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('approval_status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable(),
                 Tables\Columns\IconColumn::make('is_published')
                     ->boolean()
                     ->label('Published')

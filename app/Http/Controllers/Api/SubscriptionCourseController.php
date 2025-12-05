@@ -14,6 +14,7 @@ class SubscriptionCourseController extends Controller
 
         $courses = Course::with(['instructor:id,name', 'categories:id,name,slug'])
             ->where('is_published', true)
+            ->where('approval_status', 'approved')
             ->whereHas('plans', function ($q) use ($user) {
                 $active = $user->activeSubscription()->first();
                 if ($active) {

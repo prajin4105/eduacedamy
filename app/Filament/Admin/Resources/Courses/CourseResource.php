@@ -26,7 +26,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Admin\Resources\Courses\Pages\ListCourses;
 use App\Filament\Admin\Resources\Courses\Pages\CreateCourse;
 use App\Filament\Admin\Resources\Courses\Pages\EditCourse;
+use App\Filament\Admin\Resources\Courses\Pages\ViewCourse;
+use App\Filament\Admin\Resources\Courses\Schemas\CourseInfolist;
 use Filament\Forms\Components\Select;
+use Filament\Actions\ViewAction;
+use Filament\Actions\BulkAction;
+use Filament\Actions\Action;
+
 
 
 
@@ -36,7 +42,17 @@ class CourseResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-   public static function form(Schema $schema): Schema
+    protected static ?string $navigationLabel = 'Approved Courses';
+
+    // Add this method to filter only approved courses
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereRaw("approval_status = 'approved'")
+            ->with(['instructor', 'categories']);
+    }
+
+     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
             Section::make('Course Information')
@@ -165,10 +181,15 @@ class CourseResource extends Resource
         ]);
     }
 
-  public static function table(Table $table): Table
+    public static function infolist(Schema $schema): Schema
+    {
+        return CourseInfolist::configure($schema);
+    }
+
+    public static function table(Table $table): Table
     {
         return $table
-            ->query(Course::with('instructor'))
+            ->defaultSort('approved_at', 'desc')
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
                     ->label('Image')
@@ -206,6 +227,11 @@ class CourseResource extends Resource
                     ->label('Published')
                     ->boolean()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('approved_at')
+                    ->label('Approved')
+                    ->dateTime()
+                    ->sortable()
+                    ->since(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
@@ -232,6 +258,44 @@ class CourseResource extends Resource
                     ->native(false),
             ])
             ->actions([
+                ViewAction::make(),
+                Action::make('unpublish')
+                    ->label('Unpublish')
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Unpublish Course')
+                    ->modalDescription('Are you sure you want to unpublish this course? It will no longer be visible to students.')
+                    ->action(function (Course $record) {
+                        $record->update([
+                            'is_published' => false,
+                        ]);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Course Unpublished')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Course $record) => $record->is_published),
+                Action::make('publish')
+                    ->label('Publish')
+                    ->icon('heroicon-o-eye')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Publish Course')
+                    ->modalDescription('Are you sure you want to publish this course? It will be visible to students.')
+                    ->action(function (Course $record) {
+                        $record->update([
+                            'is_published' => true,
+                            'published_at' => now(),
+                        ]);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Course Published')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Course $record) => !$record->is_published),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -241,6 +305,7 @@ class CourseResource extends Resource
                 ]),
             ]);
     }
+
     public static function getRelations(): array
     {
         return [
@@ -253,6 +318,7 @@ public static function getPages(): array
     return [
         'index' => ListCourses::route('/'),
         'create' => CreateCourse::route('/create'),
+        'view' => ViewCourse::route('/{record}'),
         'edit' => EditCourse::route('/{record}/edit'),
     ];
 }
@@ -260,8 +326,20 @@ public static function getPages(): array
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
+            ->whereRaw("approval_status = 'approved'")
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    // Show badge with count in navigation
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::whereRaw("approval_status = 'approved'")->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'success';
     }
 }

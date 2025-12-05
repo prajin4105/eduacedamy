@@ -2,26 +2,20 @@
 
 namespace App\Filament\Admin\Resources\Courses\Pages;
 
-use App\Filament\Admin\Resources\Courses\CourseResource;
+use App\Filament\Admin\Resources\Courses\PendingCourseResource;
 use App\Models\Course;
-use App\Notifications\CourseApprovedNotification;
-use App\Notifications\CourseRejectedNotification;
-use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\RestoreAction;
-use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\ViewRecord;
+use Filament\Actions;
+use Filament\Forms;
 
-class EditCourse extends EditRecord
+class ViewPendingCourse extends ViewRecord
 {
-    protected static string $resource = CourseResource::class;
+    protected static string $resource = PendingCourseResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('approve')
+            Actions\Action::make('approve')
                 ->label('Approve Course')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
@@ -38,25 +32,28 @@ class EditCourse extends EditRecord
                     ]);
 
                     // Send notification to instructor
-                    $record->instructor->notify(new CourseApprovedNotification($record));
+                    $record->instructor->notify(new \App\Notifications\CourseApprovedNotification($record));
 
-                    Notification::make()
+                    \Filament\Notifications\Notification::make()
                         ->title('Course Approved')
+                        ->body("'{$record->title}' has been approved and published.")
                         ->success()
                         ->send();
-                })
-                ->visible(fn (Course $record) => $record->approval_status !== 'approved'),
 
-            Action::make('reject')
+                    return redirect()->to(PendingCourseResource::getUrl('index'));
+                })
+                ->visible(fn (Course $record) => $record->approval_status === 'pending'),
+            Actions\Action::make('reject')
                 ->label('Reject Course')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->form([
-                    Textarea::make('approval_reason')
+                    Forms\Components\Textarea::make('approval_reason')
                         ->label('Rejection Reason')
                         ->required()
                         ->maxLength(1000)
-                        ->rows(4),
+                        ->rows(4)
+                        ->placeholder('Please explain why this course is being rejected...'),
                 ])
                 ->requiresConfirmation()
                 ->modalHeading('Reject Course')
@@ -71,18 +68,22 @@ class EditCourse extends EditRecord
                     ]);
 
                     // Send notification to instructor
-                    $record->instructor->notify(new CourseRejectedNotification($record));
+                    $record->instructor->notify(new \App\Notifications\CourseRejectedNotification($record));
 
-                    Notification::make()
+                    \Filament\Notifications\Notification::make()
                         ->title('Course Rejected')
+                        ->body("'{$record->title}' has been rejected.")
                         ->success()
                         ->send();
-                })
-                ->visible(fn (Course $record) => $record->approval_status !== 'rejected'),
 
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
-            RestoreAction::make(),
+                    return redirect()->to(PendingCourseResource::getUrl('index'));
+                })
+                ->visible(fn (Course $record) => $record->approval_status === 'pending'),
         ];
+    }
+
+    public function getTitle(): string
+    {
+        return 'Review Pending Course';
     }
 }

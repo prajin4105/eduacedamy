@@ -12,7 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'instructor.approved' => \App\Http\Middleware\EnsureInstructorApproved::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Handle API exceptions with standardized JSON responses

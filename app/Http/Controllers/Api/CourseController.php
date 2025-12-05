@@ -29,7 +29,8 @@ class CourseController extends Controller
             'videos:id,course_id,title,description,duration_seconds,sort_order,thumbnail_url,video_url'
         ])
         ->withCount(['enrollments', 'videos', 'wishlistedBy as wishlist_count'])
-        ->where('is_published', true);
+        ->where('is_published', true)
+        ->where('approval_status', 'approved');
 
         // 🔍 Search filter
         if ($request->filled('search')) {
@@ -240,6 +241,7 @@ class CourseController extends Controller
             ])
             ->where('slug', $slug)
             ->where('is_published', true)
+            ->where('approval_status', 'approved')
             ->firstOrFail();
 
         $enrollmentStatus = null;
@@ -330,7 +332,8 @@ class CourseController extends Controller
     {
         $instructors = User::where('role', 'instructor')
             ->withCount(['courses' => function($query) {
-                $query->where('is_published', true);
+                $query->where('is_published', true)
+                      ->where('approval_status', 'approved');
             }])
             ->having('courses_count', '>', 0)
             ->get()
@@ -361,6 +364,7 @@ class CourseController extends Controller
     public function levels()
     {
         $levels = Course::where('is_published', true)
+            ->where('approval_status', 'approved')
             ->distinct()
             ->pluck('level')
             ->filter()
@@ -390,6 +394,9 @@ class CourseController extends Controller
         // If user is instructor (not admin), set instructor_id to current user
         if (Auth::user()->role === 'instructor' && !isset($validated['instructor_id'])) {
             $validated['instructor_id'] = Auth::id();
+            // Set approval status to pending and prevent direct publishing
+            $validated['approval_status'] = 'pending';
+            $validated['is_published'] = false;
         }
 
         // Generate slug if not provided
@@ -437,6 +444,15 @@ class CourseController extends Controller
         // If user is instructor (not admin), prevent changing instructor_id
         if (Auth::user()->role === 'instructor' && isset($validated['instructor_id'])) {
             unset($validated['instructor_id']);
+        }
+
+        // If instructor is updating important fields, reset approval status
+        if (Auth::user()->role === 'instructor') {
+            $importantFields = ['title', 'description', 'price', 'what_you_will_learn', 'requirements'];
+            if ($course->isDirty($importantFields)) {
+                $validated['approval_status'] = 'pending';
+                $validated['is_published'] = false;
+            }
         }
 
         // Handle image upload

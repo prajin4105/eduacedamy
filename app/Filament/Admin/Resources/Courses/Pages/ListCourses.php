@@ -16,4 +16,5 @@ class ListCourses extends ListRecords
             \Filament\Actions\CreateAction::make(),
         ];
     }
+
 }

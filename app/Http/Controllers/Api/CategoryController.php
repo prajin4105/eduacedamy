@@ -42,6 +42,7 @@ class CategoryController extends Controller
         $courses = $category->courses()
             ->with(['instructor:id,name', 'categories:id,name,slug'])
             ->where('is_published', true)
+            ->where('approval_status', 'approved')
             ->withAvg('reviews', 'rating')
             ->withCount('enrollments')
             ->orderByDesc('created_at')
