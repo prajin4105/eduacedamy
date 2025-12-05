@@ -28,6 +28,17 @@ class AdminStats extends BaseWidget
             Stat::make('Enrollments', (string) $enrollmentsCount)
                 ->icon('heroicon-m-user-group')
                 ->color('success'),
+
+            Stat::make('pending approvals', (string) Course::where('approval_status', 'pending')->count())
+                ->icon('heroicon-m-clock')
+                ->color('warning'),
+            Stat::make('rejected courses', (string) Course::where('approval_status', 'rejected')->count())
+                ->icon('heroicon-m-x-circle')
+                ->color('danger'),
+            Stat::make('approved courses', (string) Course::where('approval_status', 'approved')->count())
+                ->icon('heroicon-m-check-circle')
+                ->color('success'),
+        
         ];
     }
 }

@@ -123,27 +123,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/enrollments/delete', [EnrollmentController::class, 'deleteViaPost']);
     Route::post('/enrollments/check', [EnrollmentController::class, 'checkEnrollment']);
 
-    // Teams
-    Route::post('/teams/create', [TeamController::class, 'createViaPost']);
-    Route::post('/teams/read', [TeamController::class, 'readViaPost']);
-    Route::post('/teams/update', [TeamController::class, 'updateViaPost']);
-    Route::post('/teams/delete', [TeamController::class, 'deleteViaPost']);
-
-    // Tournaments
-    Route::post('/tournaments/create', [TournamentController::class, 'createViaPost']);
-    Route::post('/tournaments/read', [TournamentController::class, 'readViaPost']);
-    Route::post('/tournaments/update', [TournamentController::class, 'updateViaPost']);
-    Route::post('/tournaments/delete', [TournamentController::class, 'deleteViaPost']);
-
-    // Leaderboards
-    Route::post('/leaderboards/create', [LeaderboardController::class, 'createViaPost']);
-    Route::post('/leaderboards/read', [LeaderboardController::class, 'readViaPost']);
-    Route::post('/leaderboards/update', [LeaderboardController::class, 'updateViaPost']);
-    Route::post('/leaderboards/delete', [LeaderboardController::class, 'deleteViaPost']);
-
-    // Settings
-    Route::post('/settings/read', [SettingsController::class, 'readViaPost']);
-    Route::post('/settings/update', [SettingsController::class, 'updateViaPost']);
 
     // Videos
     Route::post('/videos/create', [VideoController::class, 'createViaPost']);
