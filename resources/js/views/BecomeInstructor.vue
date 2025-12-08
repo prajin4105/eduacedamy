@@ -28,6 +28,9 @@
             <p v-if="existingApplication.rejection_reason" class="text-sm text-red-600 mt-2">
               <strong>Reason:</strong> {{ existingApplication.rejection_reason }}
             </p>
+            <p v-if="existingApplication.document_type" class="text-sm text-gray-600 mt-2">
+              <strong>Document Type:</strong> {{ existingApplication.document_type }}
+            </p>
           </div>
         </div>
       </div>
@@ -68,6 +71,27 @@
               class="w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
             />
             <p v-if="errors.portfolio_url" class="text-red-600 text-sm mt-1">{{ errors.portfolio_url }}</p>
+          </div>
+
+          <!-- Document Type (NEW) -->
+          <div>
+            <label for="document_type" class="block text-sm font-medium text-gray-700 mb-2">
+              Document Type <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="document_type"
+              v-model="form.document_type"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+            >
+              <option value="" disabled>Select document type</option>
+              <option value="resume">Resume / CV</option>
+              <option value="portfolio">Portfolio</option>
+              <option value="id">Government ID</option> 
+              <option value="certificate">Certificate</option>
+              <option value="other">Other</option>
+            </select>
+            <p v-if="errors.document_type" class="text-red-600 text-sm mt-1">{{ errors.document_type }}</p>
           </div>
 
           <!-- Document Upload -->
@@ -160,6 +184,7 @@ export default {
     const form = ref({
       bio: '',
       portfolio_url: '',
+      document_type: '', // <-- added
     });
 
     const selectedFile = ref(null);
@@ -187,11 +212,12 @@ export default {
       try {
         // The instructor_status is already in the user object from login
         if (user.value?.instructor_status) {
-          // Fetch full application details if needed
-          // For now, we'll use the status from user object
+          // Fetch full application details if needed (optional)
+          // For now, we'll use the status + any known document_type from user (if available)
           existingApplication.value = {
             status: user.value.instructor_status,
-            rejection_reason: null, // Would need API endpoint to get full details
+            rejection_reason: user.value.instructor_rejection_reason || null,
+            document_type: user.value.instructor_document_type || null,
           };
         }
       } catch (error) {
@@ -223,22 +249,33 @@ export default {
     };
 
     const submitApplication = async () => {
-      if (!selectedFile.value) {
-        errors.value.document = 'Please select a document';
-        return;
-      }
-
-      loading.value = true;
+      // client-side validations
       errors.value = {};
       successMessage.value = '';
       errorMessage.value = '';
 
+      if (!form.value.bio || !form.value.bio.trim()) {
+        errors.value.bio = 'Bio is required.';
+      }
+      if (!form.value.document_type) {
+        errors.value.document_type = 'Please select a document type.';
+      }
+      if (!selectedFile.value) {
+        errors.value.document = 'Please select a document.';
+      }
+
+      if (Object.keys(errors.value).length > 0) {
+        return;
+      }
+
+      loading.value = true;
       try {
         const formData = new FormData();
         formData.append('bio', form.value.bio);
         if (form.value.portfolio_url) {
           formData.append('portfolio_url', form.value.portfolio_url);
         }
+        formData.append('document_type', form.value.document_type); // <-- added
         formData.append('document', selectedFile.value);
 
         const response = await axios.post('/instructor/apply', formData, {
@@ -250,22 +287,29 @@ export default {
         if (response.data.success) {
           successMessage.value = 'Application submitted successfully! We will review it soon.';
 
-          // Update user's instructor_status in auth store
+          // Update user's instructor_status & document_type in auth store if available
           if (auth.user) {
             auth.user.instructor_status = 'pending';
+            auth.user.instructor_document_type = form.value.document_type;
           }
 
           // Reset form
           form.value = {
             bio: '',
             portfolio_url: '',
+            document_type: '',
           };
           selectedFile.value = null;
 
-          // Refresh user data
-          await auth.checkAuth();
+          // Refresh user data (if your store provides such a method)
+          if (auth.checkAuth) {
+            await auth.checkAuth();
+          }
+        } else {
+          errorMessage.value = response.data.message || 'Failed to submit application.';
         }
       } catch (error) {
+        // Capture validation errors from server if present
         if (error.response?.data?.errors) {
           errors.value = error.response.data.errors;
         } else {
@@ -296,4 +340,3 @@ export default {
 <style scoped>
 /* Additional styles if needed */
 </style>
-

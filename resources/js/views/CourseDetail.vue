@@ -256,22 +256,23 @@ export default {
     });
 
     // Computed for requirements
-    const formattedRequirements = computed(() => {
-      if (!course.value?.requirements) return [];
+  const formattedRequirements = computed(() => {
+  if (!course.value?.requirements) return []
 
-      if (Array.isArray(course.value.requirements)) {
-        return course.value.requirements;
-      }
+  if (Array.isArray(course.value.requirements)) {
+    return course.value.requirements
+  }
 
-      if (typeof course.value.requirements === 'string') {
-        return course.value.requirements
-          .split(',')
-          .map(r => r.trim())
-          .filter(r => r.length > 0);
-      }
+  if (typeof course.value.requirements === 'string') {
+    return course.value.requirements
+      .split('•')
+      .map(r => r.replace(/^[-–•\s]+/, '').trim())
+      .filter(r => r.length > 0)
+  }
 
-      return [];
-    });
+  return []
+})
+
 
     // Computed for learning outcomes
     const formattedLearningOutcomes = computed(() => {
@@ -883,7 +884,7 @@ input[type="radio"]:checked + div {
   }
 }
 
-/* Accessibility improvements */
+/* Accessibility improvements */    
 *:focus-visible {
   outline: 2px solid #4f46e5;
   outline-offset: 2px;

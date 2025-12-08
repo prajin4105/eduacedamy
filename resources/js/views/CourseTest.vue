@@ -278,7 +278,7 @@
 
           <!-- Result Display -->
           <div v-if="result" class="p-8 border-t-4" :class="result.passed ? 'border-green-500 bg-green-50' : 'border-red-500 bg-yellow-50'">
-            <div class="flex items-center justify-between mb-6">
+            <!-- <div class="flex items-center justify-between mb-6">
               <div>
                 <h3 class="text-2xl font-bold mb-2" :class="result.passed ? 'text-green-900' : 'text-yellow-900'">
                   {{ result.passed ? '🎉 Congratulations!' : '📝 Keep Trying!' }}
@@ -290,7 +290,7 @@
               <div class="text-6xl">
                 {{ result.passed ? '✅' : '📊' }}
               </div>
-            </div>
+            </div> -->
 
             <p v-if="(status?.attemptsRemaining ?? 0) > 0" class="text-yellow-700 bg-yellow-100 p-4 rounded-lg">
               Don't worry! You have {{ status.attemptsRemaining }} attempt(s) remaining. Review the material and try again.

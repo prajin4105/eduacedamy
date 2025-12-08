@@ -46,7 +46,7 @@
               <p class="text-lg font-semibold">Certificate</p>
             </div>
           </div>
-
+          
           <!-- Certificate Info -->
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-2">

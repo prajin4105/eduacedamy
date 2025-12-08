@@ -13,15 +13,27 @@ return new class extends Migration
     {
         Schema::create('instructor_applications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->onDelete('cascade');
+
             $table->text('bio')->nullable();
             $table->string('portfolio_url', 255)->nullable();
             $table->string('document_path', 255)->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected', 'suspended'])->default('pending');
+
+            $table->enum('status', ['pending', 'approved', 'rejected', 'suspended'])
+                ->default('pending');
+
             $table->text('rejection_reason')->nullable();
             $table->timestamp('applied_at')->nullable();
             $table->timestamp('reviewed_at')->nullable();
-            $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
+
+            $table->foreignId('reviewed_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete(); // or ->onDelete('set null');
+
             $table->timestamps();
         });
     }
@@ -34,3 +46,4 @@ return new class extends Migration
         Schema::dropIfExists('instructor_applications');
     }
 };
+    
