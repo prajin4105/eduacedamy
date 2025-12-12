@@ -181,5 +181,18 @@ public function certificates()
         return $this->hasOne(InstructorApplication::class);
     }
 
+    public function studentChats(): HasMany
+    {
+        return $this->hasMany(Chat::class, 'student_id');
+    }
 
+    public function instructorChats(): HasMany
+    {
+        return $this->hasMany(Chat::class, 'instructor_id');
+    }
+
+    public function chatMessages(): HasMany
+    {
+        return $this->hasMany(ChatMessage::class, 'sender_id');
+    }
 }

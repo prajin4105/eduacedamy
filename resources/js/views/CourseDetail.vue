@@ -145,6 +145,14 @@
                     Download Certificate
                   </button>
 
+                  <button
+                    v-if="course.is_enrolled"
+                    @click="startChat"
+                    class="w-full bg-white text-indigo-700 border border-indigo-200 py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-2"
+                  >
+                    Message Instructor
+                  </button>
+
                 </div>
 
                 <div class="mt-6 border-t border-gray-200 pt-4">
@@ -568,6 +576,21 @@ export default {
       }
     };
 
+    const startChat = async () => {
+      if (!authStore.isAuthenticated) {
+        goto('login');
+        return;
+      }
+
+      try {
+        const response = await axios.post(`/courses/${course.value.id}/chat`);
+        const chatId = response.data?.data?.id || response.data?.id;
+        goto('chat', { chatId });
+      } catch (error) {
+        console.error('Unable to start chat', error);
+      }
+    };
+
     // Helper methods for enrollment button
     const getEnrollButtonText = () => {
       if (enrolling.value) {
@@ -649,6 +672,7 @@ export default {
       testData,
       startTest,
       downloadCertificate,
+      startChat,
       getEnrollButtonText,
       getEnrollButtonClass
     };
@@ -884,7 +908,7 @@ input[type="radio"]:checked + div {
   }
 }
 
-/* Accessibility improvements */    
+/* Accessibility improvements */
 *:focus-visible {
   outline: 2px solid #4f46e5;
   outline-offset: 2px;

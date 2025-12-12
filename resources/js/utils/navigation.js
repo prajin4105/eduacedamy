@@ -7,8 +7,8 @@ const STORAGE_PREFIX = "masked:";
 const saveMaskState = (mask, state) => {
   try {
     localStorage.setItem(STORAGE_PREFIX + mask, JSON.stringify({ ...state, ts: Date.now() }));
-  } catch (e) { 
-    console.warn("Failed to save mask state", e); 
+  } catch (e) {
+    console.warn("Failed to save mask state", e);
   }
 };
 

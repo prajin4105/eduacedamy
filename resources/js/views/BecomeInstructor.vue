@@ -87,7 +87,7 @@
               <option value="" disabled>Select document type</option>
               <option value="resume">Resume / CV</option>
               <option value="portfolio">Portfolio</option>
-              <option value="id">Government ID</option> 
+              <option value="id">Government ID</option>
               <option value="certificate">Certificate</option>
               <option value="other">Other</option>
             </select>

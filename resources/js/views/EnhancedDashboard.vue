@@ -284,7 +284,7 @@ const formatDate = (dateString) => {
       day: 'numeric'
     });
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error('Error formatting date:', error); 
     return 'Unknown';
   }
 };

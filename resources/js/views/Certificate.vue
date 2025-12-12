@@ -9,7 +9,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup>  
 import { ref } from 'vue';
 import axios from 'axios';
 

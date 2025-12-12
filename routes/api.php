@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\TournamentController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\VideoController;
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ChatMessageController;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -205,6 +207,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     Route::post('/uploads', [UploadController::class, 'store']);
     Route::post('/uploads/multiple', [UploadController::class, 'storeMultiple']);
+
+    // ============================================
+    // CHAT ROUTES
+    // ============================================
+    Route::get('/chats', [ChatController::class, 'index']);
+    Route::post('/courses/{course}/chat', [ChatController::class, 'store']);
+    Route::get('/chats/{chat}', [ChatController::class, 'show']);
+    Route::get('/chats/{chat}/messages', [ChatMessageController::class, 'index']);
+    Route::post('/chats/{chat}/messages', [ChatMessageController::class, 'store']);
+    Route::post('/chats/{chat}/read', [ChatMessageController::class, 'markAsRead']);
 
     // ============================================
     // API RESOURCE ROUTES

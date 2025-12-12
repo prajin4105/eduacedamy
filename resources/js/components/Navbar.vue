@@ -17,7 +17,7 @@
           </div>
 
           <!-- Desktop Navigation Links -->
-          <div class="hidden md:ml-10 md:flex md:space-x-1">
+          <div class="hidden md:ml-10 md:flex md:space-x-1">    
 
             <a @click.prevent="goto('courses')" class="nav-link">
               <!-- svg omitted for brevity (keeps original icons intact) -->
@@ -145,6 +145,10 @@
                       My Courses
                     </a>
 
+                    <a @click.prevent="handleMenuClick('chat')" class="dropdown-item">
+                      Messages
+                    </a>
+
                     <a @click.prevent="handleMenuClick('certificates')" class="dropdown-item">
                       Certificates
                     </a>
@@ -194,6 +198,7 @@
           <a @click.prevent="handleMobileClick('courses')" class="mobile-nav-link">Courses</a>
           <a @click.prevent="handleMobileClick('pricing')" class="mobile-nav-link">Pricing</a>
           <a @click.prevent="handleMobileClick('subscriptions')" class="mobile-nav-link">Subscriptions</a>
+          <a @click.prevent="handleMobileClick('chat')" class="mobile-nav-link">Messages</a>
 
           <!-- Mobile: same role-aware logic -->
           <router-link
