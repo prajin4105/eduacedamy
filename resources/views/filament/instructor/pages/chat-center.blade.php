@@ -1,70 +1,274 @@
-<x-filament::page>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-gray-800">Chats</h2>
-                <button wire:click="loadChats" class="text-xs text-indigo-600 hover:text-indigo-700">Refresh</button>
+<x-filament::page class="p-0">
+    <style>
+        /* Layout */
+        .chat-grid { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 24px; }
+        @media (min-width: 768px) { .chat-grid { grid-template-columns: 320px 1fr; } }
+
+        .panel { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); overflow: hidden; }
+        .dark .panel { background: #0b0b0c; border-color: #222; color: #e6e6e6; }
+
+        /* Left list */
+        .left-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #f1f1f1; }
+        .left-header .title { font-weight:600; font-size:14px; }
+        .search { padding:6px 8px; font-size:13px; border:1px solid #ddd; border-radius:6px; width:130px; }
+        .refresh-btn { font-size:12px; color:#4f46e5; background:transparent; border:0; cursor:pointer; }
+
+        .chats-list { max-height: 74vh; overflow-y:auto; }
+        .chat-item { display:flex; gap:12px; align-items:center; padding:12px 16px; width:100%; text-align:left; border-bottom:1px solid #f6f6f6; background:white; cursor:pointer; }
+        .chat-item:hover { background:#eef2ff; }
+        .chat-item.active { background:#eef2ff; }
+        .avatar { height:40px; width:40px; border-radius:999px; background:#eef2ff; display:flex; align-items:center; justify-content:center; font-weight:700; color:#3730a3; }
+        .chat-meta { flex:1; min-width:0; }
+        .course { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .student { font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .chat-right { text-align:right; min-width:68px; font-size:12px; color:#9ca3af; }
+
+        /* Right messages */
+        .messages-panel { display:flex; flex-direction:column; height:78vh; }
+        .empty-state { padding:48px; text-align:center; color:#6b7280; }
+        .messages-area { flex:1; overflow-y:auto; padding:20px; background:transparent; }
+        .message-row { display:flex; margin-bottom:12px; position: relative; }
+        .message-row.right { justify-content:flex-end; }
+        .message-block {
+            max-width:75%;
+            padding:12px 14px;
+            border-radius:18px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            font-size:14px;
+            line-height:1.5;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            position: relative;
+            cursor: pointer;
+        }
+        .message-block.incoming { background:#ffffff; border:1px solid #e5e7eb; color:#111827; }
+        .message-block.outgoing { background:#4f46e5; color:#fff; }
+
+        .message-sender { font-size:12px; color:#6b7280; margin-bottom:6px; }
+        .message-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        /* Tooltip for time and read status */
+        .message-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .message-block:hover .message-tooltip {
+            opacity: 1;
+        }
+
+        /* Arrow for tooltip */
+        .message-tooltip::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        /* Tooltip positioning - default bottom */
+        .message-tooltip.bottom {
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .message-tooltip.bottom::before {
+            border-width: 0 6px 6px 6px;
+            border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Tooltip positioning - top */
+        .message-tooltip.top {
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .message-tooltip.top::before {
+            border-width: 6px 6px 0 6px;
+            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Composer */
+        .composer { border-top:1px solid #f1f1f1; padding:12px; display:flex; gap:10px; align-items:center; background:#fff; }
+        .composer input[type="text"] { flex:1; padding:10px 12px; border:1px solid #ddd; border-radius:999px; font-size:14px; }
+        .composer button.send { padding:8px 14px; border-radius:999px; background:#4f46e5; color:#fff; border:0; cursor:pointer; font-weight:600; }
+
+        /* Dark adjustments if Filament applies dark mode class on body */
+        .dark .left-header, .dark .composer, .dark .chat-item { border-color:#222; background:transparent; }
+        .dark .search { background:#0b0b0c; color:#e6e6e6; border-color:#2b2b2b; }
+        .dark .chat-item:hover { background:#182028; }
+        .dark .avatar { background:#0f172a; color:#c7d2fe; }
+        .dark .course, .dark .student, .dark .chat-right { color:#cbd5e1; }
+        .dark .message-block.incoming { background:#0b0b0c; border-color:#222; color:#e6e6e6; }
+        .dark .message-block.outgoing { background:#3b82f6; color:#fff; }
+        .dark .composer input[type="text"] { background:#071023; color:#e6e6e6; border-color:#222; }
+        .dark .composer { background:transparent; border-top-color:#222; }
+    </style>
+
+    <div class="chat-grid">
+        <!-- Left -->
+        <div class="panel">
+            <div class="left-header">
+                <div class="title">Chats</div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input wire:model.debounce.300ms="search" class="search" type="search" placeholder="Search..." />
+                    <button wire:click="loadChats" class="refresh-btn">Refresh</button>
+                </div>
             </div>
 
-            <div class="max-h-[70vh] overflow-y-auto divide-y divide-gray-100">
+            <div class="chats-list" role="list" aria-label="Chats list">
                 @forelse($chats as $chat)
                     <button
                         wire:click="selectChat({{ $chat['id'] }})"
-                        class="w-full text-left px-4 py-3 hover:bg-indigo-50 {{ $selectedChatId === $chat['id'] ? 'bg-indigo-50' : '' }}"
+                        type="button"
+                        class="chat-item {{ $selectedChatId === $chat['id'] ? 'active' : '' }}"
+                        role="listitem"
+                        aria-current="{{ $selectedChatId === $chat['id'] ? 'true' : 'false' }}"
                     >
-                        <p class="text-sm font-semibold text-gray-900">
-                            {{ $chat['course']['title'] ?? 'Course' }}
-                        </p>
-                        <p class="text-xs text-gray-600">Student: {{ $chat['student']['name'] ?? 'Unknown' }}</p>
-                        <div class="flex items-center justify-between mt-1 text-xs text-gray-500">
-                            <span>{{ optional($chat['last_message_at'])->diffForHumans() }}</span>
+                        <div class="avatar">{{ \Illuminate\Support\Str::upper(substr($chat['student']['name'] ?? 'S', 0, 1)) }}</div>
+
+                        <div class="chat-meta">
+                            <div class="course">{{ $chat['course']['title'] ?? 'Course' }}</div>
+                            <div class="student">Student: {{ $chat['student']['name'] ?? 'Unknown' }}</div>
+                        </div>
+
+                        <div class="chat-right">
+                            <div>{{ optional($chat['last_message_at'])->diffForHumans() }}</div>
                             @if(($chat['unread'] ?? 0) > 0)
-                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700">
-                                    {{ $chat['unread'] }}
-                                </span>
+                                <div style="margin-top:6px; display:inline-block; background:#ef4444; color:#fff; padding:2px 8px; border-radius:999px; font-size:12px;">{{ $chat['unread'] }}</div>
                             @endif
                         </div>
                     </button>
                 @empty
-                    <div class="p-4 text-sm text-gray-500">No chats yet.</div>
+                    <div style="padding:14px; color:#6b7280;">No chats yet.</div>
                 @endforelse
             </div>
         </div>
 
-        <div class="md:col-span-2 bg-white shadow-sm border border-gray-200 rounded-lg flex flex-col h-[70vh]">
+        <!-- Right -->
+        <div class="panel messages-panel">
             @if(!$selectedChatId)
-                <div class="p-6 text-sm text-gray-500">Select a chat to view messages.</div>
+                <div class="empty-state">
+                    <div style="font-weight:600; color:#111827">No chat selected</div>
+                    <div style="font-size:13px; margin-top:6px; color:#6b7280">Choose a conversation from the left to view messages.</div>
+                </div>
             @else
-                <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3 bg-gray-50">
+                <div id="messagesContainer" class="messages-area"
+                     x-data
+                     x-init="() => {
+                         const el = $el;
+                         const scrollBottom = () => el.scrollTop = el.scrollHeight;
+                         setTimeout(scrollBottom, 50);
+
+                         // Livewire emits from backend: 'messageSent' and 'messagesUpdated'
+                         Livewire.on('messageSent', (messageId) => {
+                             setTimeout(scrollBottom, 50);
+                         });
+
+                         Livewire.on('messagesUpdated', (chatId) => {
+                             setTimeout(scrollBottom, 50);
+                         });
+
+                         window.addEventListener('message-sent', () => setTimeout(scrollBottom, 50));
+                     }"
+                     role="log"
+                     aria-live="polite"
+                >
                     @forelse($messages as $message)
-                        <div class="flex {{ $message['sender_id'] === auth()->id() ? 'justify-end' : 'justify-start' }}">
-                            <div class="max-w-[70%] rounded-xl px-3 py-2 text-sm shadow-sm {{ $message['sender_id'] === auth()->id() ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-900' }}">
-                                <p>{{ $message['body'] }}</p>
-                                <p class="text-[10px] mt-1 {{ $message['sender_id'] === auth()->id() ? 'text-indigo-100' : 'text-gray-400' }}">
-                                    {{ \Carbon\Carbon::parse($message['created_at'])->format('H:i') }}
+                        <div class="message-row {{ $message['sender_id'] === auth()->id() ? 'right' : 'left' }}">
+                            <div class="message-block {{ $message['sender_id'] === auth()->id() ? 'outgoing' : 'incoming' }}"
+                                 x-data="{
+                                     tooltipPosition: 'bottom',
+                                     updateTooltipPosition(event) {
+                                         const messageBlock = event.currentTarget;
+                                         const tooltip = messageBlock.querySelector('.message-tooltip');
+                                         const container = document.getElementById('messagesContainer');
+
+                                         if (!tooltip || !container) return;
+
+                                         const blockRect = messageBlock.getBoundingClientRect();
+                                         const containerRect = container.getBoundingClientRect();
+                                         const tooltipHeight = 40; // Approximate tooltip height
+
+                                         const spaceBelow = containerRect.bottom - blockRect.bottom;
+                                         const spaceAbove = blockRect.top - containerRect.top;
+
+                                         // If not enough space below, show on top
+                                         if (spaceBelow < tooltipHeight && spaceAbove > tooltipHeight) {
+                                             this.tooltipPosition = 'top';
+                                         } else {
+                                             this.tooltipPosition = 'bottom';
+                                         }
+                                     }
+                                 }"
+                                 @mouseenter="updateTooltipPosition($event)"
+                            >
+                                @if($message['sender_id'] !== auth()->id())
+                                    <div class="message-sender">{{ $message['sender_name'] ?? 'Student' }}</div>
+                                @endif
+
+                                <div class="message-content">{{ $message['body'] }}</div>
+
+                                <div class="message-tooltip" :class="tooltipPosition">
+                                    {{ \Carbon\Carbon::parse($message['created_at'])->format('H:i A') }}
                                     @if($message['read_at'])
-                                        <span class="ml-1">• Read</span>
+                                        • Read at {{ \Carbon\Carbon::parse($message['read_at'])->format('H:i A') }}
+                                    @else
+                                        • Unread
                                     @endif
-                                </p>
+                                </div>
                             </div>
                         </div>
                     @empty
-                        <div class="text-sm text-gray-500">No messages yet.</div>
+                        <div style="padding:14px; color:#6b7280;">No messages yet in this conversation.</div>
                     @endforelse
                 </div>
 
-                <form wire:submit.prevent="sendMessage" class="border-t border-gray-200 p-4 flex items-center space-x-3">
-                    <input
-                        wire:model.defer="messageBody"
-                        type="text"
-                        class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Type your message..."
-                    />
-                    <x-filament::button type="submit">
-                        Send
-                    </x-filament::button>
-                </form>
+                <div class="composer">
+                    <form wire:submit.prevent="sendMessage" style="display:flex; gap:10px; width:100%;">
+                        <input wire:model.defer="messageBody" wire:keydown.enter.prevent="sendMessage" type="text" placeholder="Type your message..." />
+                        <button type="submit" class="send">Send</button>
+                    </form>
+                </div>
             @endif
         </div>
     </div>
+
+    <script>
+        // For backward compatibility with older code that dispatched window event
+        window.addEventListener('message-sent', function () {
+            const el = document.getElementById('messagesContainer');
+            if (el) setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+        });
+
+        // In case you want extra JS reaction to Livewire emit
+        Livewire.on('messagesUpdated', function () {
+            const el = document.getElementById('messagesContainer');
+            if (el) setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+        });
+    </script>
 </x-filament::page>

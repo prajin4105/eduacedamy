@@ -14,6 +14,11 @@ class ChatController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * Get all chats for authenticated user
+     * - Students: get chats for all enrolled courses
+     * - Instructors: get chats for all teaching courses
+     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -24,14 +29,18 @@ class ChatController extends Controller
             ->orderByDesc('last_message_at')
             ->orderByDesc('id');
 
+        // Filter based on user role
         if ($user->role === 'instructor') {
             $query->where('instructor_id', $user->id);
         } else {
+            // Student: show all chats for enrolled courses
             $query->where('student_id', $user->id);
         }
 
         $chats = $query->get()->map(function (Chat $chat) use ($user) {
             $latest = $chat->latestMessage;
+
+            // Get unread count based on user role
             $unread = $user->id === $chat->student_id
                 ? $chat->student_unread_count
                 : $chat->instructor_unread_count;
@@ -55,14 +64,20 @@ class ChatController extends Controller
         return $this->successResponse($chats);
     }
 
+    /**
+     * Create or retrieve a chat for a course
+     * Only students can initiate chats with instructors
+     */
     public function store(Request $request, Course $course)
     {
         $user = $request->user();
 
+        // Only students can start chats
         if ($user->role !== 'student') {
             return $this->errorResponse('Only students can start chats', 403);
         }
 
+        // Check if student is enrolled in the course
         $hasEnrollment = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->whereIn('status', ['enrolled', 'in_progress', 'completed'])
@@ -72,10 +87,12 @@ class ChatController extends Controller
             return $this->errorResponse('You must be enrolled in this course to chat with the instructor', 403);
         }
 
+        // Check if course has an instructor
         if (!$course->instructor_id) {
             return $this->errorResponse('Course does not have an assigned instructor yet', 422);
         }
 
+        // Create or get existing chat
         $chat = Chat::firstOrCreate(
             [
                 'course_id' => $course->id,
@@ -93,6 +110,9 @@ class ChatController extends Controller
         return $this->successResponse($chat, 'Chat ready');
     }
 
+    /**
+     * Get a specific chat with details
+     */
     public function show(Chat $chat, Request $request)
     {
         Gate::authorize('view', $chat);
@@ -100,7 +120,9 @@ class ChatController extends Controller
         $chat->load(['course:id,title,slug', 'student:id,name,email', 'instructor:id,name,email']);
 
         $latest = $chat->messages()->latest()->first();
-        $unread = $request->user()->id === $chat->student_id
+        $user = $request->user();
+
+        $unread = $user->id === $chat->student_id
             ? $chat->student_unread_count
             : $chat->instructor_unread_count;
 
@@ -114,5 +136,33 @@ class ChatController extends Controller
             'latest_message' => $latest,
             'unread_count' => $unread,
         ]);
+    }
+
+    /**
+     * Update chat status (e.g., close, archive)
+     */
+    public function update(Request $request, Chat $chat)
+    {
+        Gate::authorize('update', $chat);
+
+        $validated = $request->validate([
+            'status' => 'required|in:open,closed,archived',
+        ]);
+
+        $chat->update($validated);
+
+        return $this->successResponse($chat, 'Chat updated successfully');
+    }
+
+    /**
+     * Delete a chat (soft delete)
+     */
+    public function destroy(Chat $chat)
+    {
+        Gate::authorize('delete', $chat);
+
+        $chat->delete();
+
+        return $this->successResponse(null, 'Chat deleted successfully');
     }
 }
