@@ -7,9 +7,12 @@ use App\Models\ChatMessage;
 use BackedEnum;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Livewire\WithFileUploads;
 
 class ChatCenter extends Page
 {
+    use WithFileUploads;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
     protected string $view = 'filament.instructor.pages.chat-center';
     protected static ?string $navigationLabel = 'Chat';
@@ -21,6 +24,7 @@ class ChatCenter extends Page
     public ?int $selectedChatId = null;
     public array $messages = [];
     public string $messageBody = '';
+    public $attachment = null;
 
     /**
      * Initialize the component
@@ -90,6 +94,7 @@ class ChatCenter extends Page
             ->map(fn (ChatMessage $message) => [
                 'id' => $message->id,
                 'body' => $message->body,
+                'image_url' => $message->image_url,
                 'sender_id' => $message->sender_id,
                 'sender_name' => $message->sender?->name ?? 'Unknown',
                 'created_at' => $message->created_at,
@@ -109,7 +114,8 @@ class ChatCenter extends Page
     {
         // Validate message
         $this->validate([
-            'messageBody' => ['required', 'string', 'max:2000'],
+            'messageBody' => ['nullable', 'string', 'max:2000', 'required_without:attachment'],
+            'attachment' => ['nullable', 'image', 'max:5120'],
         ]);
 
         if (!$this->selectedChatId) {
@@ -122,12 +128,17 @@ class ChatCenter extends Page
             return;
         }
 
+        $imagePath = $this->attachment
+            ? $this->attachment->store('chat-images', 'public')
+            : null;
+
         // Create message
         ChatMessage::create([
             'chat_id' => $chat->id,
             'sender_id' => Auth::id(),
             'sender_type' => 'instructor',
-            'body' => trim($this->messageBody),
+            'body' => trim($this->messageBody) ?: '',
+            'image_path' => $imagePath,
         ]);
 
         // Update chat metadata
@@ -137,7 +148,7 @@ class ChatCenter extends Page
         ]);
 
         // Reset input and reload
-        $this->messageBody = '';
+        $this->reset(['messageBody', 'attachment']);
         $this->loadMessages();
         $this->loadChats();
 

@@ -15,7 +15,7 @@
       </div>
 
       <!-- Main Chat Container -->
-      <div class="bg-white shadow-lg rounded-2xl border border-gray-200 overflow-hidden" style="height: calc(100vh - 180px);">
+      <div class="bg-white shadow-lg border border-gray-200 overflow-hidden" style="height: calc(100vh - 180px);">
         <div class="grid grid-cols-1 lg:grid-cols-3 h-full">
 
           <!-- Chat List Sidebar -->
@@ -85,7 +85,7 @@
                         </div>
                       </div>
                       <p class="text-xs text-gray-600 truncate mt-1">
-                        {{ chat.latest_message?.body || 'Start a conversation' }}
+                        {{ getLatestMessagePreview(chat) }}
                       </p>
                     </div>
                   </div>
@@ -108,7 +108,7 @@
             </div>
 
             <!-- Chat View -->
-            <div v-else class="flex flex-col h-full overflow-hidden">
+            <div v-else class="flex flex-col h-full overflow-hidden relative">
               <!-- Chat Header -->
               <div class="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
                 <div class="flex items-center gap-3">
@@ -132,7 +132,7 @@
               <div
                 ref="messageContainer"
                 @scroll="handleScroll"
-                class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
+                class="flex-1 overflow-y-auto p-4 pb-2 space-y-4 bg-gradient-to-b from-gray-50 to-white"
                 style="max-height: calc(100vh - 320px); min-height: 300px;"
               >
                 <!-- Load More Indicator -->
@@ -170,7 +170,15 @@
                       ? 'bg-indigo-600 text-white rounded-br-sm'
                       : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'"
                   >
-                    <p class="text-sm whitespace-pre-wrap break-words">{{ msg.body }}</p>
+                    <p v-if="msg.body" class="text-sm whitespace-pre-wrap break-words">{{ msg.body }}</p>
+                    <div v-if="msg.image_url" class="mt-2">
+                      <img
+                        :src="msg.image_url"
+                        alt="Sent image"
+                        class="rounded-xl border border-gray-200 bg-white max-h-64 object-contain cursor-pointer transition transform hover:scale-[1.01]"
+                        @click="openImageModal(msg.image_url)"
+                      />
+                    </div>
                     <div class="flex items-center gap-2 mt-2 text-xs opacity-75">
                       <span>{{ formatMessageTime(msg.created_at) }}</span>
                       <span v-if="msg.sender_id === currentUser?.id">
@@ -187,35 +195,106 @@
                 </div>
               </div>
 
-              <!-- Message Input -->
-              <div class="p-4 border-t border-gray-200 bg-white flex-shrink-0">
-                <div class="flex gap-3">
-                  <input
-                    v-model="messageBody"
-                    @keyup.enter="sendMessage"
-                    :disabled="sending"
-                    type="text"
-                    placeholder="Type your message..."
-                    class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                  <button
-                    @click="sendMessage"
-                    :disabled="sending || !messageBody.trim()"
-                    class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
-                    <span v-if="!sending">Send</span>
-                    <span v-else>Sending...</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+<!-- Message Input (STAYS INSIDE CHAT PANEL) -->
+<div class="relative border-t border-gray-200 bg-white p-4 flex-shrink-0">
+  <div class="relative">
+
+    <!-- Attachment Preview (overlay, no layout jump) -->
+    <div
+      v-if="attachmentName || attachmentPreview"
+      class="absolute bottom-full mb-2 left-0 w-full flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2"
+    >
+      <div class="flex items-center gap-2 text-indigo-700 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 00-5.656-5.656L6.343 9.758" />
+        </svg>
+        <span class="font-medium truncate max-w-[180px]">
+          {{ attachmentName }}
+        </span>
+      </div>
+
+      <img
+        v-if="attachmentPreview"
+        :src="attachmentPreview"
+        class="h-12 w-12 object-cover rounded-lg border border-indigo-100 bg-white"
+      />
+
+      <button
+        type="button"
+        class="ml-auto text-xs text-indigo-700 hover:text-indigo-900"
+        @click="removeAttachment"
+      >
+        Remove
+      </button>
+    </div>
+
+    <!-- Input Row -->
+    <div class="flex items-center gap-3">
+      <input
+        ref="fileInput"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="handleFileChange"
+      />
+
+      <button
+        type="button"
+        @click="fileInput.click()"
+        :disabled="sending"
+        class="h-12 w-12 flex items-center justify-center border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      >
+        +
+      </button>
+
+      <input
+        v-model="messageBody"
+        @keydown.enter.exact.prevent="sendMessage"
+        :disabled="sending"
+        type="text"
+        placeholder="Type your message..."
+        class="flex-1 h-12 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+
+      <button
+        @click="sendMessage"
+        :disabled="sending || (!messageBody.trim() && !attachment)"
+        class="h-12 px-6 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+
+
           </div>
         </div>
       </div>
     </div>
+  </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div
+    v-if="imageModalUrl"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
+    @click.self="closeImageModal"
+  >
+    <button
+      class="absolute top-6 right-6 text-white hover:text-gray-200"
+      @click="closeImageModal"
+    >
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+    <img
+      :src="imageModalUrl"
+      alt="Preview"
+      class="max-h-[85vh] max-w-[90vw] rounded-2xl shadow-2xl border border-gray-700 object-contain"
+    />
   </div>
 </template>
 
@@ -229,6 +308,12 @@ let socket = null;
 
 export default {
   name: "ChatApp",
+  props: {
+    chatId: {
+      type: [Number, String],
+      default: null,
+    },
+  },
   setup() {
     // State
     const chats = ref([]);
@@ -238,11 +323,16 @@ export default {
     const loadingMessages = ref(false);
     const isInitialLoad = ref(false);
     const messageBody = ref("");
+    const attachment = ref(null);
+    const attachmentName = ref("");
+    const attachmentPreview = ref(null);
+    const fileInput = ref(null);
     const sending = ref(false);
     const cursor = ref(null);
     const hasMore = ref(true);
     const messageContainer = ref(null);
     const messageIds = ref(new Set());
+    const imageModalUrl = ref(null);
 
     const auth = useAuthStore();
     const currentUser = computed(() => auth.user);
@@ -338,18 +428,36 @@ export default {
 
     // Send message
     const sendMessage = async () => {
-      if (!messageBody.value.trim() || !selectedChat.value || sending.value) {
+      if ((!messageBody.value.trim() && !attachment.value) || !selectedChat.value || sending.value) {
         return;
       }
 
       const body = messageBody.value.trim();
+      const imageFile = attachment.value;
       messageBody.value = "";
+      attachment.value = null;
+      attachmentName.value = "";
+      if (attachmentPreview.value) {
+        URL.revokeObjectURL(attachmentPreview.value);
+        attachmentPreview.value = null;
+      }
       sending.value = true;
 
       try {
+        const formData = new FormData();
+        if (body) {
+          formData.append("body", body);
+        }
+        if (imageFile) {
+          formData.append("image", imageFile);
+        }
+
         const { data } = await axios.post(
           `/chats/${selectedChat.value.id}/messages`,
-          { body }
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
         );
 
         const newMessage = data.data;
@@ -377,9 +485,50 @@ export default {
       } catch (error) {
         console.error("Error sending message:", error);
         messageBody.value = body; // Restore message on error
+        attachment.value = imageFile;
+        attachmentName.value = imageFile?.name || "";
+        if (imageFile && !attachmentPreview.value) {
+          attachmentPreview.value = URL.createObjectURL(imageFile);
+        }
       } finally {
         sending.value = false;
       }
+    };
+
+    const handleFileChange = (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      attachment.value = file;
+      attachmentName.value = file.name;
+
+      if (attachmentPreview.value) {
+        URL.revokeObjectURL(attachmentPreview.value);
+      }
+      attachmentPreview.value = URL.createObjectURL(file);
+    };
+
+    const removeAttachment = () => {
+      attachment.value = null;
+      attachmentName.value = "";
+      if (attachmentPreview.value) {
+        URL.revokeObjectURL(attachmentPreview.value);
+        attachmentPreview.value = null;
+      }
+
+      if (fileInput.value) {
+        fileInput.value.value = "";
+      }
+    };
+
+    const openImageModal = (url) => {
+      imageModalUrl.value = url;
+      document.body.style.overflow = "hidden";
+    };
+
+    const closeImageModal = () => {
+      imageModalUrl.value = null;
+      document.body.style.overflow = "";
     };
 
     // Socket setup
@@ -504,6 +653,18 @@ export default {
       return name.substring(0, 2).toUpperCase();
     };
 
+    const getLatestMessagePreview = (chat) => {
+      if (chat.latest_message?.body) {
+        return chat.latest_message.body;
+      }
+
+      if (chat.latest_message?.image_url) {
+        return "[Image]";
+      }
+
+      return "Start a conversation";
+    };
+
     // Lifecycle
     onMounted(() => {
       loadChats();
@@ -523,6 +684,12 @@ export default {
         socket.disconnect();
         socket = null;
       }
+
+      if (attachmentPreview.value) {
+        URL.revokeObjectURL(attachmentPreview.value);
+      }
+
+      document.body.style.overflow = "";
     });
 
     return {
@@ -533,15 +700,25 @@ export default {
       loadingMessages,
       isInitialLoad,
       messageBody,
+      attachment,
+      attachmentName,
+      attachmentPreview,
+      fileInput,
       sending,
       currentUser,
       messageContainer,
       selectChat,
       sendMessage,
+      handleFileChange,
+      removeAttachment,
+      openImageModal,
+      closeImageModal,
       handleScroll,
       formatTime,
       formatMessageTime,
       getInitials,
+      getLatestMessagePreview,
+      imageModalUrl,
     };
   },
 };

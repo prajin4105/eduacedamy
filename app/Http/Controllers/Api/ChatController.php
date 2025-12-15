@@ -54,6 +54,7 @@ class ChatController extends Controller
                 'last_message_at' => $chat->last_message_at,
                 'latest_message' => $latest ? [
                     'body' => $latest->body,
+                    'image_url' => $latest->image_url,
                     'sender_type' => $latest->sender_type,
                     'created_at' => $latest->created_at,
                 ] : null,

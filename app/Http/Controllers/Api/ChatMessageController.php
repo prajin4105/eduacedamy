@@ -20,7 +20,16 @@ class ChatMessageController extends Controller
         $messages = $chat->messages()
             ->with('sender:id,name')
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            ->map(fn (ChatMessage $message) => [
+                'id' => $message->id,
+                'body' => $message->body,
+                'image_url' => $message->image_url,
+                'sender_id' => $message->sender_id,
+                'sender_type' => $message->sender_type,
+                'created_at' => $message->created_at,
+                'read_at' => $message->read_at,
+            ]);
 
         $this->markRead($chat, $request->user());
 
@@ -32,17 +41,23 @@ class ChatMessageController extends Controller
         Gate::authorize('send', $chat);
 
         $validated = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['nullable', 'string', 'max:2000', 'required_without:image'],
+            'image' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $user = $request->user();
         $senderType = $user->id === $chat->student_id ? 'student' : 'instructor';
 
+        $imagePath = $request->hasFile('image')
+            ? $request->file('image')->store('chat-images', 'public')
+            : null;
+
         $message = ChatMessage::create([
             'chat_id' => $chat->id,
             'sender_id' => $user->id,
             'sender_type' => $senderType,
-            'body' => $validated['body'],
+            'body' => $validated['body'] ?? '',
+            'image_path' => $imagePath,
         ]);
 
         $chat->last_message_at = now();
@@ -55,7 +70,9 @@ class ChatMessageController extends Controller
 
         $chat->save();
 
-        return $this->successResponse($message->load('sender:id,name'), 'Message sent', 201);
+        $message->load('sender:id,name');
+
+        return $this->successResponse($message, 'Message sent', 201);
     }
 
     public function markAsRead(Chat $chat, Request $request)

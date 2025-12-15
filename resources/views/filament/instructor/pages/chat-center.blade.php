@@ -129,15 +129,13 @@
         .dark .composer { background:transparent; border-top-color:#222; }
     </style>
 
-    <div class="chat-grid">
-        <!-- Left -->
-        <div class="panel">
+    <div x-data="{ showImage:false, imageSrc:null }" x-on:open-chat-image.window="showImage=true; imageSrc=$event.detail">
+        <div class="chat-grid">
+            <!-- Left -->
+            <div class="panel">
             <div class="left-header">
                 <div class="title">Chats</div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input wire:model.debounce.300ms="search" class="search" type="search" placeholder="Search..." />
-                    <button wire:click="loadChats" class="refresh-btn">Refresh</button>
-                </div>
+                
             </div>
 
             <div class="chats-list" role="list" aria-label="Chats list">
@@ -169,8 +167,8 @@
             </div>
         </div>
 
-        <!-- Right -->
-        <div class="panel messages-panel">
+            <!-- Right -->
+            <div class="panel messages-panel">
             @if(!$selectedChatId)
                 <div class="empty-state">
                     <div style="font-weight:600; color:#111827">No chat selected</div>
@@ -231,7 +229,20 @@
                                     <div class="message-sender">{{ $message['sender_name'] ?? 'Student' }}</div>
                                 @endif
 
-                                <div class="message-content">{{ $message['body'] }}</div>
+                                @if(!empty($message['body']))
+                                    <div class="message-content">{{ $message['body'] }}</div>
+                                @endif
+
+                                @if(!empty($message['image_url']))
+                                    <div style="margin-top:12px; display:flex; justify-content:center;">
+                                        <img
+                                            src="{{ $message['image_url'] }}"
+                                            alt="Attachment"
+                                            style="max-height:220px; max-width:100%; border-radius:12px; border:1px solid #e5e7eb; background:#fff; object-fit:contain; cursor:pointer;"
+                                            x-on:click="$dispatch('open-chat-image', '{{ $message['image_url'] }}')"
+                                        >
+                                    </div>
+                                @endif
 
                                 <div class="message-tooltip" :class="tooltipPosition">
                                     {{ \Carbon\Carbon::parse($message['created_at'])->format('H:i A') }}
@@ -250,11 +261,50 @@
 
                 <div class="composer">
                     <form wire:submit.prevent="sendMessage" style="display:flex; gap:10px; width:100%;">
+                        <label style="display:flex; align-items:center; justify-content:center; width:46px; height:46px; border:1px solid #ddd; border-radius:50%; cursor:pointer; background:#f8fafc;">
+                            <input type="file" accept="image/*" wire:model.live="attachment" style="display:none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:22px; height:22px; color:#4f46e5;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </label>
+
                         <input wire:model.defer="messageBody" wire:keydown.enter.prevent="sendMessage" type="text" placeholder="Type your message..." />
                         <button type="submit" class="send">Send</button>
                     </form>
+                    @if($attachment)
+                        <div style="margin-top:8px; display:flex; align-items:center; gap:10px; background:#eef2ff; border:1px solid #e5e7eb; border-radius:12px; padding:8px 12px;">
+                            <div style="display:flex; align-items:center; gap:6px; color:#3730a3; font-size:13px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:16px; height:16px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 00-5.656-5.656L6.343 9.758" />
+                                </svg>
+                                <span style="font-weight:600;">Attachment ready</span>
+                            </div>
+                            <div wire:loading wire:target="attachment" style="font-size:12px; color:#6b7280;">Uploading...</div>
+                            @if($attachment->temporaryUrl())
+                                <img src="{{ $attachment->temporaryUrl() }}" alt="Preview" style="height:42px; width:42px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;">
+                            @endif
+                        </div>
+                    @endif
                 </div>
             @endif
+        </div>
+
+        <div
+            x-show="showImage"
+            x-transition
+            style="position:fixed; inset:0; background:rgba(0,0,0,0.75); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter: blur(2px);"
+            x-on:click.self="showImage=false; imageSrc=null"
+        >
+            <button
+                style="position:absolute; top:18px; right:18px; color:white;"
+                x-on:click="showImage=false; imageSrc=null"
+                aria-label="Close image preview"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:30px; height:30px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <img x-show="imageSrc" :src="imageSrc" alt="Preview" style="max-height:85vh; max-width:90vw; border-radius:16px; border:1px solid rgba(255,255,255,0.12); box-shadow:0 10px 40px rgba(0,0,0,0.35); object-fit:contain;">
         </div>
     </div>
 
