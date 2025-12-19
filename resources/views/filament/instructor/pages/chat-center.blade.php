@@ -135,7 +135,7 @@
             <div class="panel">
             <div class="left-header">
                 <div class="title">Chats</div>
-                
+
             </div>
 
             <div class="chats-list" role="list" aria-label="Chats list">

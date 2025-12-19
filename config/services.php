@@ -17,6 +17,10 @@ return [
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
+    'storj' => [
+    'public_url' => env('STORJ_PUBLIC_BASE_URL'),
+],
+
 
     'resend' => [
         'key' => env('RESEND_KEY'),

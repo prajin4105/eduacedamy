@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
-import { createHtmlPlugin } from 'vite-plugin-html';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
 // Export the Vite configuration
@@ -20,14 +19,7 @@ export default defineConfig({
         vueDevTools(),
 
         // Plugin for injecting HTML tags dynamically (e.g., title, meta tags)
-        createHtmlPlugin({
-            inject: {
-                // You can add dynamic title or any other HTML tag you need here
-                injectData: {
-                    title: 'Your Project Title',
-                },
-            },
-        }),
+
 
         // Vue plugin for handling .vue components
         vue({

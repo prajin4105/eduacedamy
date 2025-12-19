@@ -292,7 +292,7 @@
               </div>
             </div> -->
 
-            <p v-if="(status?.attemptsRemaining ?? 0) > 0" class="text-yellow-700 bg-yellow-100 p-4 rounded-lg">
+            <div v-if="(status?.attemptsRemaining ?? 0) > 0" class="text-yellow-700 bg-yellow-100 p-4 rounded-lg">
               Don't worry! You have {{ status.attemptsRemaining }} attempt(s) remaining. Review the material and try again.
                <div class="mt-6 flex gap-3">
               <button
@@ -303,7 +303,7 @@
                 Back to Start
               </button>
             </div>
-            </p>
+        </div>
 
 
           </div>
